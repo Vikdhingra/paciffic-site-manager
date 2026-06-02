@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 
 
 // ─── CONFIG ── fill these in ────────────────────────────────────────────────
-const APP_VERSION = 'v2.0602.1408';
+const APP_VERSION = 'v3.0603.0001';
 const SUPABASE_URL = 'https://uwlkthiqarhdupvxypnq.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV3bGt0aGlxYXJoZHVwdnh5cG5xIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1MTk1ODcsImV4cCI6MjA5NTA5NTU4N30.irKa_YvMNuxuj7JBt2sJsuZ7s8Xcu20-Tp4OLeE89gI';
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY, {
@@ -593,7 +593,7 @@ function AdminDashboard({projects,stats,onSave,onOpenProject,onGoProjects,supaba
   ];
   return (
     <div>
-      {!supabaseLoaded&&<div style={{background:C.amber+'15',border:'1px solid '+C.amber+'40',borderRadius:8,padding:'8px 14px',marginBottom:14,display:'flex',alignItems:'center',gap:10,fontFamily:"'JetBrains Mono',monospace",fontSize:11,color:C.amber}}><div style={{width:14,height:14,border:'2px solid '+C.amber+'40',borderTop:'2px solid '+C.amber,borderRadius:'50%',animation:'spin 1s linear infinite'}}/>Syncing latest data...</div>}
+      {!supabaseLoaded&&!(projects&&projects.length)&&<div style={{background:C.amber+'15',border:'1px solid '+C.amber+'40',borderRadius:8,padding:'8px 14px',marginBottom:14,display:'flex',alignItems:'center',gap:10,fontFamily:"'JetBrains Mono',monospace",fontSize:11,color:C.amber}}><div style={{width:14,height:14,border:'2px solid '+C.amber+'40',borderTop:'2px solid '+C.amber,borderRadius:'50%',animation:'spin 1s linear infinite'}}/>Syncing latest data...</div>}
       <SafeActivityFeed projects={projects} onSave={onSave}/>
       <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontWeight:800,fontSize:26,color:C.t1,marginBottom:4}}>{greetWord}</div>
       <div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:11,color:C.t3,marginBottom:20}}>{dateStr} {'·'} AEST</div>
