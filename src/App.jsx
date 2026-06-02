@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 
 
 // ─── CONFIG ── fill these in ────────────────────────────────────────────────
-const APP_VERSION = 'v3.0603.0001';
+const APP_VERSION = 'v3.0603.0002';
 const SUPABASE_URL = 'https://uwlkthiqarhdupvxypnq.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV3bGt0aGlxYXJoZHVwdnh5cG5xIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1MTk1ODcsImV4cCI6MjA5NTA5NTU4N30.irKa_YvMNuxuj7JBt2sJsuZ7s8Xcu20-Tp4OLeE89gI';
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY, {
@@ -162,6 +162,9 @@ async function verifyAdminPassword(email, password) {
 const LS_KEY='ph_v4';
 const lsSave=projects=>{try{localStorage.setItem(LS_KEY,JSON.stringify(projects));}catch(e){}};
 const lsLoad=()=>{try{const d=localStorage.getItem(LS_KEY);return d?JSON.parse(d):[];}catch(e){return [];}};
+const PROFILE_KEY='ph_profile';
+const lsSaveProfile=p=>{try{if(p)localStorage.setItem(PROFILE_KEY,JSON.stringify(p));}catch(e){}};
+const lsLoadProfile=()=>{try{const d=localStorage.getItem(PROFILE_KEY);return d?JSON.parse(d):null;}catch(e){return null;}};
 const isSupabaseReady=()=>SUPABASE_URL!=='https://YOUR_PROJECT.supabase.co'&&SUPABASE_KEY!=='YOUR_ANON_KEY'&&SUPABASE_KEY!=='YOUR_PUBLISHABLE_KEY'&&SUPABASE_URL.includes('supabase.co')&&SUPABASE_KEY.length>20;
 
 // ── AUTH SCREEN ─────────────────────────────────────────────────────────────
@@ -230,7 +233,7 @@ function AuthScreen({onAuth}) {
 // ── ROOT APP ─────────────────────────────────────────────────────────────────
 function App() {
   const [user,setUser]=useState(null);
-  const [profile,setProfile]=useState(null);
+  const [profile,setProfile]=useState(()=>lsLoadProfile());
   const [profiles,setProfiles]=useState([]); // all registered users
   const [loading,setLoading]=useState(true);
   const [projects,setProjects]=useState(()=>{try{return lsLoad()||[];}catch{return [];}});
@@ -282,7 +285,9 @@ function App() {
       dbProfiles().catch(()=>[])
     ]).then(([prof,projs,profs])=>{
       clearTimeout(dataTimeout);
-      setProfile(prof||{role:'admin',full_name:user.email||'',id:user.id,email:user.email||''});
+      const resolvedProfile=prof||{role:'admin',full_name:user.email||'',id:user.id,email:user.email||''};
+      setProfile(resolvedProfile);
+      lsSaveProfile(resolvedProfile);
       setProfiles(profs||[]);
       if(projs!==null){
         // Supabase returned projects successfully
@@ -369,11 +374,16 @@ function App() {
 
   const handleSignOut=async()=>{
     if(sbOk&&user?.id!=='local') await sb.auth.signOut();
+    try{localStorage.removeItem(PROFILE_KEY);localStorage.removeItem(LS_KEY);}catch(e){}
     setProjects([]);setProfile(null);setUser(null);
   };
 
   if(!user&&!loading) return <AuthScreen onAuth={setUser}/>;
-  if(loading||(!profile&&user&&user.id!=='local')) return <Splash/>;
+  // Only block on Splash if we truly have nothing to show yet (no user, or a
+  // logged-in user with no cached profile). A cached profile lets us render
+  // instantly while fresh data refreshes in the background.
+  if(!user) return <Splash/>;
+  if(!profile&&user.id!=='local') return <Splash/>;
 
   const isAdmin=profile?.role==='admin'||profile?.role==='superadmin'||profile?.role==='super_admin';
   // Admin always sees admin view unless they explicitly switched to supervisor
