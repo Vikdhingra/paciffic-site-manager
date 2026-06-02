@@ -400,7 +400,7 @@ function App() {
 }
 
 // ── ADMIN APP ────────────────────────────────────────────────────────────────
-function AdminApp({user,profile,profiles,projects,onSave,onCreate,onDelete,onArchive,onSoftDelete,onRestore,onPermanentDelete,onSignOut,showToast,onSwitchView,viewAs}) {
+function AdminApp({user,profile,profiles,projects,supabaseLoaded,onSave,onCreate,onDelete,onArchive,onSoftDelete,onRestore,onPermanentDelete,onSignOut,showToast,onSwitchView,viewAs}) {
   const [section,setSection]=useState('dashboard');
   const [selProject,setSelProject]=useState(null);
   const [adminScreen,setAdminScreen]=useState('main'); // main | project
@@ -482,7 +482,7 @@ function AdminApp({user,profile,profiles,projects,onSave,onCreate,onDelete,onArc
         </div>
         {/* Main Content */}
         <div className="admin-content" style={{flex:1,overflow:'auto',padding:'20px 24px',paddingBottom:'80px'}}>
-        {section==='dashboard'&&<AdminDashboard projects={activeProjects} stats={{total,active,completed,allTasks:allTasks.length,doneTasks,pct}} onSave={onSave} onOpenProject={p=>{setActiveProjectId(p.id);setAdminScreen('project');}} onGoProjects={()=>setSection('projects')}/>}
+        {section==='dashboard'&&<AdminDashboard projects={activeProjects} supabaseLoaded={supabaseLoaded} stats={{total,active,completed,allTasks:allTasks.length,doneTasks,pct}} onSave={onSave} onOpenProject={p=>{setActiveProjectId(p.id);setAdminScreen('project');}} onGoProjects={()=>setSection('projects')}/>}
         {section==='projects'&&<AdminProjectsList projects={activeProjects} onSelect={p=>{setActiveProjectId(p.id);setAdminScreen('project');}} onDetail={p=>{setSelProject(p);}} selProject={selProject} profiles={profiles} onSave={onSave} onSoftDelete={onSoftDelete} onArchive={onArchive} onBack={()=>setSelProject(null)} onDelete={async id=>{await onDelete(id);setSelProject(null);}} user={user}/>}
         {section==='archive'&&<AdminArchive projects={archivedProjects} user={user} onRestore={onRestore} onSoftDelete={onSoftDelete}/>}
         {section==='trash'&&<AdminTrash projects={deletedProjects} user={user} onRestore={onRestore} onPermanentDelete={onPermanentDelete}/>}
