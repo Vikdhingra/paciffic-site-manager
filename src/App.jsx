@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 
 
 // ─── CONFIG ── fill these in ────────────────────────────────────────────────
-const APP_VERSION = 'v3.0603.0002';
+const APP_VERSION = 'v3.0603.0003';
 const SUPABASE_URL = 'https://uwlkthiqarhdupvxypnq.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV3bGt0aGlxYXJoZHVwdnh5cG5xIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1MTk1ODcsImV4cCI6MjA5NTA5NTU4N30.irKa_YvMNuxuj7JBt2sJsuZ7s8Xcu20-Tp4OLeE89gI';
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY, {
@@ -165,6 +165,9 @@ const lsLoad=()=>{try{const d=localStorage.getItem(LS_KEY);return d?JSON.parse(d
 const PROFILE_KEY='ph_profile';
 const lsSaveProfile=p=>{try{if(p)localStorage.setItem(PROFILE_KEY,JSON.stringify(p));}catch(e){}};
 const lsLoadProfile=()=>{try{const d=localStorage.getItem(PROFILE_KEY);return d?JSON.parse(d):null;}catch(e){return null;}};
+const USER_KEY='ph_user';
+const lsSaveUser=u=>{try{if(u)localStorage.setItem(USER_KEY,JSON.stringify({id:u.id,email:u.email}));}catch(e){}};
+const lsLoadUser=()=>{try{const d=localStorage.getItem(USER_KEY);return d?JSON.parse(d):null;}catch(e){return null;}};
 const isSupabaseReady=()=>SUPABASE_URL!=='https://YOUR_PROJECT.supabase.co'&&SUPABASE_KEY!=='YOUR_ANON_KEY'&&SUPABASE_KEY!=='YOUR_PUBLISHABLE_KEY'&&SUPABASE_URL.includes('supabase.co')&&SUPABASE_KEY.length>20;
 
 // ── AUTH SCREEN ─────────────────────────────────────────────────────────────
@@ -232,10 +235,17 @@ function AuthScreen({onAuth}) {
 
 // ── ROOT APP ─────────────────────────────────────────────────────────────────
 function App() {
-  const [user,setUser]=useState(null);
-  const [profile,setProfile]=useState(()=>lsLoadProfile());
+  // Optimistic restore: if a returning user has BOTH a cached user marker and
+  // cached profile, render immediately while getSession() confirms in the
+  // background. Data is RLS-protected, so a stale optimistic render is safe —
+  // an invalid session simply fails the refresh and signs them out.
+  const cachedProfile=lsLoadProfile();
+  const cachedUser=lsLoadUser();
+  const canOptimisticRender=!!(cachedProfile&&cachedUser);
+  const [user,setUser]=useState(()=>canOptimisticRender?cachedUser:null);
+  const [profile,setProfile]=useState(()=>cachedProfile);
   const [profiles,setProfiles]=useState([]); // all registered users
-  const [loading,setLoading]=useState(true);
+  const [loading,setLoading]=useState(!canOptimisticRender);
   const [projects,setProjects]=useState(()=>{try{return lsLoad()||[];}catch{return [];}});
   const [toast,setToast]=useState('');
   const [sbOk,setSbOk]=useState(true);
@@ -256,12 +266,21 @@ function App() {
     }
 
     sb.auth.getSession().then(({data:{session}})=>{
-      if(session) setUser(session.user); else setLoading(false);
+      if(session){
+        setUser(session.user);
+        lsSaveUser(session.user);
+      } else {
+        // No valid session. If we optimistically rendered from cache, undo it.
+        try{localStorage.removeItem(USER_KEY);localStorage.removeItem(PROFILE_KEY);localStorage.removeItem(LS_KEY);}catch(e){}
+        setUser(null);setProfile(null);setProjects([]);
+        setLoading(false);
+      }
     }).catch(()=>{
       setLoading(false); // show login on error - don't fake local user
     });
     const {data:{subscription}}=sb.auth.onAuthStateChange((_,session)=>{
-      if(session) setUser(session.user); else {setUser(null);setProfile(null);setLoading(false);}
+      if(session){setUser(session.user);lsSaveUser(session.user);}
+      else {try{localStorage.removeItem(USER_KEY);localStorage.removeItem(PROFILE_KEY);}catch(e){}setUser(null);setProfile(null);setLoading(false);}
     });
     return ()=>{ subscription.unsubscribe(); };
   },[]);
@@ -374,7 +393,7 @@ function App() {
 
   const handleSignOut=async()=>{
     if(sbOk&&user?.id!=='local') await sb.auth.signOut();
-    try{localStorage.removeItem(PROFILE_KEY);localStorage.removeItem(LS_KEY);}catch(e){}
+    try{localStorage.removeItem(USER_KEY);localStorage.removeItem(PROFILE_KEY);localStorage.removeItem(LS_KEY);}catch(e){}
     setProjects([]);setProfile(null);setUser(null);
   };
 
