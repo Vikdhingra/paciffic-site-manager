@@ -11,7 +11,24 @@ proper mobile layout. Same Supabase backend and data as before.
 - **Real build pipeline** — every git push auto-deploys via Netlify.
 - **Organised code** — small files instead of one 2,900-line monster.
 
-## Backend (unchanged)
+## ⚠️ REQUIRED for User Management (v3.3.0+)
+
+Adding/inviting/deleting users runs through a secure Netlify function that needs
+your Supabase **service role** key. This key is secret — it lives ONLY in Netlify,
+never in the code or browser.
+
+1. In Supabase → **Settings → API**, copy the **service_role** secret (NOT the anon key)
+2. In Netlify → your site → **Site configuration → Environment variables**, add:
+   - `SUPABASE_URL` = `https://uwlkthiqarhdupvxypnq.supabase.co`
+   - `SUPABASE_SERVICE_ROLE_KEY` = (the service_role secret you copied)
+3. Redeploy (Netlify → Deploys → Trigger deploy)
+
+Without these two variables, the “Add User / Reset / Delete” actions return
+“Server not configured”. Everything else works fine without them.
+
+---
+
+
 - Supabase URL: https://uwlkthiqarhdupvxypnq.supabase.co
 - Same tables: `profiles`, `sc_projects`, `sc_photos`, `sc_templates`
 - Your existing projects and data load straight in.
