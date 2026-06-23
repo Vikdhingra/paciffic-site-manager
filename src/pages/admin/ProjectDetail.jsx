@@ -91,8 +91,37 @@ function Team({ p, update }) {
 function Overview({ p, update }) {
   const [open, setOpen] = useState(p.currentStage)
 
-  const setStageStatus = (idx) => {
+  // Mark a stage complete: set its status, advance currentStage to the next
+  // incomplete stage, and activate it.
+  const completeStage = (idx) => {
+    const stages = p.stages.map((s, i) =>
+      i === idx
+        ? { ...s, status: 'complete', completedAt: new Date().toISOString() }
+        : s
+    )
+    // find next stage that isn't complete
+    let next = stages.findIndex((s, i) => i > idx && s.status !== 'complete')
+    if (next === -1) next = Math.min(idx + 1, stages.length - 1)
+    const withActive = stages.map((s, i) => ({
+      ...s,
+      status: i === next && s.status !== 'complete' ? 'active' : s.status,
+    }))
+    update({ ...p, stages: withActive, currentStage: next })
+    setOpen(next)
+  }
+
+  // Reopen a completed stage: clear complete status, make it the active stage again.
+  const reopenStage = (idx) => {
+    const stages = p.stages.map((s, i) =>
+      i === idx ? { ...s, status: 'active', completedAt: null } : s
+    )
+    update({ ...p, stages, currentStage: idx })
+    setOpen(idx)
+  }
+
+  const setActive = (idx) => {
     update({ ...p, currentStage: idx })
+    setOpen(idx)
   }
 
   return (
@@ -102,10 +131,21 @@ function Overview({ p, update }) {
         const done = s.tasks?.filter((t) => t.status === 'done').length || 0
         const total = s.tasks?.length || 0
         const pct = total ? Math.round((done / total) * 100) : 0
-        const isActive = i === p.currentStage
+        const isComplete = s.status === 'complete'
+        const isActive = !isComplete && i === p.currentStage
         const isExpanded = open === i
+        const allTasksDone = total > 0 && done === total
+        const barColor = isComplete ? C.green : col
         return (
-          <Card key={s.id} style={{ marginBottom: 10, padding: 0, borderLeft: '4px solid ' + col }}>
+          <Card
+            key={s.id}
+            style={{
+              marginBottom: 10,
+              padding: 0,
+              borderLeft: '4px solid ' + (isComplete ? C.green : col),
+              opacity: isComplete ? 0.92 : 1,
+            }}
+          >
             <button
               onClick={() => setOpen(isExpanded ? -1 : i)}
               style={{
@@ -125,7 +165,7 @@ function Overview({ p, update }) {
                   width: 30,
                   height: 30,
                   borderRadius: '50%',
-                  background: col,
+                  background: isComplete ? C.green : col,
                   color: '#fff',
                   display: 'flex',
                   alignItems: 'center',
@@ -136,7 +176,7 @@ function Overview({ p, update }) {
                   flexShrink: 0,
                 }}
               >
-                {i + 1}
+                {isComplete ? '✓' : i + 1}
               </div>
               <div style={{ flex: 1 }}>
                 <div
@@ -148,6 +188,9 @@ function Overview({ p, update }) {
                   }}
                 >
                   {s.name}
+                  {isComplete && (
+                    <span style={{ marginLeft: 8, fontSize: 10, color: C.green }}>✓ COMPLETE</span>
+                  )}
                   {isActive && (
                     <span style={{ marginLeft: 8, fontSize: 10, color: col }}>● ACTIVE</span>
                   )}
@@ -160,7 +203,7 @@ function Overview({ p, update }) {
             </button>
             {total > 0 && (
               <div style={{ margin: '0 16px 8px', background: C.border, borderRadius: 4, height: 5, overflow: 'hidden' }}>
-                <div style={{ width: pct + '%', height: '100%', background: col }} />
+                <div style={{ width: pct + '%', height: '100%', background: barColor }} />
               </div>
             )}
             {isExpanded && (
@@ -173,12 +216,7 @@ function Overview({ p, update }) {
                     key={t.id}
                     style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0' }}
                   >
-                    <span
-                      style={{
-                        color: t.status === 'done' ? C.green : C.t3,
-                        fontSize: 16,
-                      }}
-                    >
+                    <span style={{ color: t.status === 'done' ? C.green : C.t3, fontSize: 16 }}>
                       {t.status === 'done' ? '✓' : '○'}
                     </span>
                     <span
@@ -192,10 +230,38 @@ function Overview({ p, update }) {
                     </span>
                   </div>
                 ))}
-                {!isActive && (
-                  <Btn variant="outline" onClick={() => setStageStatus(i)} style={{ marginTop: 8 }}>
-                    SET AS ACTIVE STAGE
-                  </Btn>
+
+                {/* Stage action buttons */}
+                <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+                  {isComplete ? (
+                    <Btn variant="outline" onClick={() => reopenStage(i)} style={{ color: C.amber, borderColor: C.amber + '60' }}>
+                      ↩ REOPEN STAGE
+                    </Btn>
+                  ) : (
+                    <>
+                      {!isActive && (
+                        <Btn variant="outline" onClick={() => setActive(i)}>
+                          SET AS ACTIVE
+                        </Btn>
+                      )}
+                      <Btn variant="primary" onClick={() => completeStage(i)} style={{ background: C.green, color: '#fff' }}>
+                        ✓ MARK STAGE COMPLETE
+                      </Btn>
+                    </>
+                  )}
+                </div>
+
+                {allTasksDone && !isComplete && (
+                  <div
+                    style={{
+                      marginTop: 10,
+                      fontSize: 12,
+                      color: C.green,
+                      fontFamily: "'JetBrains Mono', monospace",
+                    }}
+                  >
+                    ✓ All tasks done — ready to complete this stage
+                  </div>
                 )}
               </div>
             )}
@@ -235,11 +301,22 @@ function Tasks({ p, update }) {
             ...s,
             tasks: s.tasks.map((t) =>
               t.id === tid
-                ? { ...t, status: t.status === 'done' ? 'todo' : 'done', doneAt: new Date().toISOString() }
+                ? {
+                    ...t,
+                    status: t.status === 'done' ? 'todo' : 'done',
+                    doneAt: t.status === 'done' ? null : new Date().toISOString(),
+                  }
                 : t
             ),
           }
         : s
+    )
+    update({ ...p, stages })
+  }
+
+  const deleteTask = (tid) => {
+    const stages = p.stages.map((s) =>
+      s.id === stageId ? { ...s, tasks: s.tasks.filter((t) => t.id !== tid) } : s
     )
     update({ ...p, stages })
   }
@@ -295,6 +372,7 @@ function Tasks({ p, update }) {
         <Card key={t.id} style={{ marginBottom: 8, padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 10 }}>
           <button
             onClick={() => toggleTask(t.id)}
+            title={t.status === 'done' ? 'Tap to reopen' : 'Tap to mark done'}
             style={{
               width: 26,
               height: 26,
@@ -308,7 +386,7 @@ function Tasks({ p, update }) {
           >
             {t.status === 'done' ? '✓' : ''}
           </button>
-          <div style={{ flex: 1 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
             <div
               style={{
                 fontSize: 14,
@@ -318,6 +396,22 @@ function Tasks({ p, update }) {
             >
               {t.title}
             </div>
+            {t.status === 'done' && (
+              <button
+                onClick={() => toggleTask(t.id)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: C.amber,
+                  cursor: 'pointer',
+                  fontSize: 11,
+                  padding: 0,
+                  fontFamily: "'JetBrains Mono', monospace",
+                }}
+              >
+                ↩ reopen
+              </button>
+            )}
           </div>
           <span
             style={{
@@ -329,6 +423,23 @@ function Tasks({ p, update }) {
           >
             {(t.priority || 'medium').toUpperCase()}
           </span>
+          <button
+            onClick={() => {
+              if (confirm('Delete task "' + t.title + '"?')) deleteTask(t.id)
+            }}
+            title="Delete task"
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: C.t3,
+              cursor: 'pointer',
+              fontSize: 16,
+              padding: 0,
+              flexShrink: 0,
+            }}
+          >
+            ×
+          </button>
         </Card>
       ))}
     </div>
