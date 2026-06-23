@@ -1,0 +1,113 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+  background: #f4f6f9;
+}
+
+body {
+  font-family: 'Barlow', sans-serif;
+  color: #0d1b3e;
+  -webkit-font-smoothing: antialiased;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+select option {
+  background: #fff;
+  color: #0d1b3e;
+}
+
+input[type='date']::-webkit-calendar-picker-indicator {
+  filter: invert(0.3);
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spinner {
+  border: 3px solid #e2e8f0;
+  border-top: 3px solid #b8960c;
+  border-radius: 50%;
+  animation: spin 0.9s linear infinite;
+}
+
+button {
+  font-family: inherit;
+}
+
+/* ── Layout: sidebar + content ─────────────────────────────── */
+.app-shell {
+  display: flex;
+  min-height: 100vh;
+}
+
+.sidebar {
+  width: 84px;
+  background: #0d1b3e;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+}
+
+.content {
+  flex: 1;
+  min-width: 0;
+}
+
+.mobile-nav {
+  display: none;
+}
+
+/* ── Mobile breakpoint ─────────────────────────────────────── */
+@media (max-width: 720px) {
+  .sidebar {
+    display: none;
+  }
+  .mobile-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #0d1b3e;
+    border-top: 2px solid #b8960c;
+    z-index: 100;
+    padding: 4px 0;
+  }
+  .content-inner {
+    padding: 12px 10px 90px 10px !important;
+  }
+  .grid-2col {
+    grid-template-columns: 1fr !important;
+  }
+  .stat-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  .topbar {
+    padding: 12px 14px !important;
+  }
+}
