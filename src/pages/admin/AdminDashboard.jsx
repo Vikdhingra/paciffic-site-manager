@@ -3,6 +3,7 @@ import { C } from '../../lib/constants'
 import { computeStats, buildReminders, buildActivity, buildNotes } from '../../lib/derive'
 import { fmtDateShort, timeAgo } from '../../lib/constants'
 import { Card, Label, Spinner, Pill } from '../../components/ui'
+import { ProgressRing, StackedBar } from '../../components/charts'
 
 export default function AdminDashboard({ projects, loaded, error, onOpenProject, onGoProjects }) {
   const [dismissed, setDismissed] = useState([])
@@ -31,11 +32,10 @@ export default function AdminDashboard({ projects, loaded, error, onOpenProject,
   const dismiss = (id) => setDismissed((d) => [...d, id])
 
   const statCards = [
-    { label: 'TOTAL PROJECTS', val: stats.total, color: C.t1, bg: '#EEF2FF' },
-    { label: 'ACTIVE', val: stats.active, color: C.amber, bg: '#FFFBEB' },
-    { label: 'COMPLETED', val: stats.completed, color: C.green, bg: '#F0FDF4' },
-    { label: 'TASKS DONE', val: stats.doneTasks + '/' + stats.allTasks, color: C.blue, bg: '#EFF6FF' },
-    { label: 'COMPLETION', val: stats.pct + '%', color: C.purple, bg: '#FAF5FF' },
+    { label: 'PROJECTS', val: stats.total, color: '#fff', icon: '🏗️' },
+    { label: 'ACTIVE', val: stats.active, color: '#FCD34D', icon: '⚡' },
+    { label: 'COMPLETED', val: stats.completed, color: '#6EE7B7', icon: '✓' },
+    { label: 'TASKS', val: stats.doneTasks + '/' + stats.allTasks, color: '#93C5FD', icon: '📋' },
   ]
 
   return (
@@ -76,6 +76,126 @@ export default function AdminDashboard({ projects, loaded, error, onOpenProject,
         </div>
       )}
 
+      {/* ── GRAPHICAL HERO BANNER ── */}
+      <div
+        style={{
+          background: 'linear-gradient(135deg, #0D1B3E 0%, #16284f 55%, #1E3A5F 100%)',
+          borderRadius: 18,
+          padding: '24px 26px',
+          marginBottom: 22,
+          position: 'relative',
+          overflow: 'hidden',
+          boxShadow: '0 12px 36px rgba(13,27,62,0.25)',
+        }}
+      >
+        {/* decorative gold glow */}
+        <div
+          style={{
+            position: 'absolute',
+            top: -60,
+            right: -40,
+            width: 220,
+            height: 220,
+            borderRadius: '50%',
+            background: 'radial-gradient(circle, rgba(184,150,12,0.25) 0%, transparent 70%)',
+          }}
+        />
+        <div
+          className="hero-row"
+          style={{ display: 'flex', alignItems: 'center', gap: 28, position: 'relative', flexWrap: 'wrap' }}
+        >
+          {/* Greeting + stats */}
+          <div style={{ flex: 1, minWidth: 220 }}>
+            <div
+              style={{
+                fontFamily: "'JetBrains Mono', monospace",
+                fontSize: 10,
+                color: C.amber,
+                letterSpacing: 2,
+                marginBottom: 4,
+              }}
+            >
+              {dateStr.toUpperCase()} · AEST
+            </div>
+            <div
+              style={{
+                fontFamily: "'Barlow Condensed', sans-serif",
+                fontWeight: 800,
+                fontSize: 34,
+                color: '#fff',
+                lineHeight: 1,
+                marginBottom: 18,
+              }}
+            >
+              {greet}
+            </div>
+
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit,minmax(110px,1fr))',
+                gap: 10,
+              }}
+            >
+              {statCards.map((c) => (
+                <button
+                  key={c.label}
+                  onClick={onGoProjects}
+                  style={{
+                    background: 'rgba(255,255,255,0.06)',
+                    border: '1px solid rgba(255,255,255,0.12)',
+                    borderRadius: 12,
+                    padding: '12px 14px',
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <div style={{ fontSize: 16, marginBottom: 4 }}>{c.icon}</div>
+                  <div
+                    style={{
+                      fontFamily: "'Barlow Condensed', sans-serif",
+                      fontWeight: 800,
+                      fontSize: 26,
+                      color: c.color,
+                      lineHeight: 1,
+                    }}
+                  >
+                    {c.val}
+                  </div>
+                  <div
+                    style={{
+                      fontFamily: "'JetBrains Mono', monospace",
+                      fontSize: 8,
+                      color: 'rgba(255,255,255,0.6)',
+                      letterSpacing: 1,
+                      marginTop: 3,
+                    }}
+                  >
+                    {c.label}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Completion ring */}
+          <div style={{ textAlign: 'center', flexShrink: 0 }}>
+            <ProgressRingDark pct={stats.pct} />
+            <div
+              style={{
+                fontFamily: "'JetBrains Mono', monospace",
+                fontSize: 9,
+                color: 'rgba(255,255,255,0.6)',
+                letterSpacing: 1,
+                marginTop: 8,
+              }}
+            >
+              OVERALL COMPLETION
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Reminders */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
         <Label>🔔 REMINDERS &amp; TASKS</Label>
@@ -110,77 +230,8 @@ export default function AdminDashboard({ projects, loaded, error, onOpenProject,
         </div>
       )}
 
-      {/* Greeting */}
-      <div
-        style={{
-          fontFamily: "'Barlow Condensed', sans-serif",
-          fontWeight: 800,
-          fontSize: 28,
-          color: C.t1,
-          margin: '28px 0 2px',
-        }}
-      >
-        {greet}
-      </div>
-      <div
-        style={{
-          fontFamily: "'JetBrains Mono', monospace",
-          fontSize: 11,
-          color: C.t3,
-          marginBottom: 20,
-        }}
-      >
-        {dateStr} · AEST
-      </div>
-
-      {/* Stats */}
-      <div
-        className="stat-grid"
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill,minmax(150px,1fr))',
-          gap: 12,
-          marginBottom: 24,
-        }}
-      >
-        {statCards.map((c) => (
-          <button
-            key={c.label}
-            onClick={onGoProjects}
-            style={{
-              background: c.bg,
-              border: '1px solid ' + c.color + '30',
-              borderRadius: 12,
-              padding: '18px 14px',
-              textAlign: 'center',
-              cursor: 'pointer',
-            }}
-          >
-            <div
-              style={{
-                fontFamily: "'Barlow Condensed', sans-serif",
-                fontWeight: 800,
-                fontSize: 40,
-                color: c.color,
-                lineHeight: 1,
-                marginBottom: 6,
-              }}
-            >
-              {c.val}
-            </div>
-            <div
-              style={{
-                fontFamily: "'JetBrains Mono', monospace",
-                fontSize: 9,
-                color: c.color,
-                letterSpacing: 1,
-              }}
-            >
-              {c.label}
-            </div>
-          </button>
-        ))}
-      </div>
+      {/* spacer before lower panels */}
+      <div style={{ height: 22 }} />
 
       {/* Recent projects + notes */}
       <div
@@ -476,4 +527,44 @@ const xBtn = {
   fontSize: 18,
   lineHeight: 1,
   padding: 0,
+}
+
+// White-on-navy progress ring for the hero banner
+function ProgressRingDark({ pct, size = 116, stroke = 11 }) {
+  const r = (size - stroke) / 2
+  const circ = 2 * Math.PI * r
+  const offset = circ - (pct / 100) * circ
+  return (
+    <div style={{ position: 'relative', width: size, height: size }}>
+      <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth={stroke} />
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          fill="none"
+          stroke="#FCD34D"
+          strokeWidth={stroke}
+          strokeLinecap="round"
+          strokeDasharray={circ}
+          strokeDashoffset={offset}
+          style={{ transition: 'stroke-dashoffset 0.6s ease' }}
+        />
+      </svg>
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, fontSize: 32, color: '#fff', lineHeight: 1 }}>
+          {pct}%
+        </div>
+      </div>
+    </div>
+  )
 }

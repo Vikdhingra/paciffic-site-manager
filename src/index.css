@@ -110,4 +110,8 @@ button {
   .topbar {
     padding: 12px 14px !important;
   }
+  .hero-row {
+    flex-direction: column-reverse !important;
+    align-items: stretch !important;
+  }
 }

@@ -17,4 +17,4 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   },
 })
 
-export const APP_VERSION = 'v3.3.0'
+export const APP_VERSION = 'v3.4.0'
