@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { C } from '../lib/constants'
+import { C, isAssigned } from '../lib/constants'
 import { APP_VERSION } from '../lib/supabase'
 import { signOut } from '../lib/db'
 import { LOGO } from '../logo'
@@ -11,10 +11,8 @@ export default function SupervisorApp(props) {
   const { user, profile, projects, save, onSwitchView } = props
   const [openProject, setOpenProject] = useState(null)
 
-  // Supervisors only see projects assigned to them (or all if none assigned yet)
-  const myProjects = projects.filter(
-    (p) => !p.supervisorId || p.supervisorId === user.id
-  )
+  // Supervisors only see projects they are assigned to
+  const myProjects = projects.filter((p) => isAssigned(p, user.id))
   const stats = computeStats(myProjects)
 
   return (

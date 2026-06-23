@@ -25,14 +25,14 @@ export async function deleteProject(id) {
   if (error) throw error
 }
 
-export function newProject({ name, location, client, supervisorId, stages }) {
+export function newProject({ name, location, client, supervisorIds, stages }) {
   const stageNames = stages && stages.length ? stages : DEFAULT_STAGES
   return {
     id: uid(),
     name,
     location: location || '',
     client: client || '',
-    supervisorId: supervisorId || null,
+    supervisorIds: supervisorIds || [],
     color: stageColor(Math.floor(Math.random() * 10)),
     currentStage: 0,
     createdAt: new Date().toISOString(),

@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { C, uid, stageColor, fmtDateShort } from '../../lib/constants'
+import { C, uid, stageColor, fmtDateShort, isAdminRole, projectSupervisorIds } from '../../lib/constants'
 import { Card, Label, Btn, Input } from '../../components/ui'
+import SupervisorPicker from '../../components/SupervisorPicker'
 
-export default function ProjectDetail({ project, save, onBack }) {
+export default function ProjectDetail({ project, save, onBack, isAdmin }) {
   // Work on a local copy; persist via save()
   const [p, setP] = useState(project)
   const [tab, setTab] = useState('overview')
@@ -16,6 +17,7 @@ export default function ProjectDetail({ project, save, onBack }) {
     { id: 'overview', label: 'OVERVIEW' },
     { id: 'tasks', label: 'TASKS' },
     { id: 'notes', label: 'NOTES' },
+    ...(isAdmin ? [{ id: 'team', label: 'TEAM' }] : []),
   ]
 
   return (
@@ -60,6 +62,27 @@ export default function ProjectDetail({ project, save, onBack }) {
       {tab === 'overview' && <Overview p={p} update={update} />}
       {tab === 'tasks' && <Tasks p={p} update={update} />}
       {tab === 'notes' && <Notes p={p} update={update} />}
+      {tab === 'team' && <Team p={p} update={update} />}
+    </div>
+  )
+}
+
+// ── TEAM (supervisor assignment) ──────────────────────────────
+function Team({ p, update }) {
+  const assigned = projectSupervisorIds(p)
+  return (
+    <div>
+      <Label style={{ fontSize: 14, marginBottom: 6 }}>ASSIGNED SUPERVISORS</Label>
+      <div style={{ fontSize: 13, color: C.t2, marginBottom: 14 }}>
+        Tap to add or remove. Supervisors only see projects they're assigned to.
+        {assigned.length > 0 && ' Currently ' + assigned.length + ' assigned.'}
+      </div>
+      <Card>
+        <SupervisorPicker
+          project={p}
+          onChange={(ids) => update({ ...p, supervisorIds: ids })}
+        />
+      </Card>
     </div>
   )
 }

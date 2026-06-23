@@ -1,10 +1,22 @@
-import { useState } from 'react'
-import { C, isAdminRole } from '../../lib/constants'
-import { newProject } from '../../lib/db'
+import { useState, useEffect } from 'react'
+import { C, isAdminRole, projectSupervisorIds } from '../../lib/constants'
+import { newProject, fetchAllProfiles } from '../../lib/db'
 import { Card, Label, Btn, Input } from '../../components/ui'
+import SupervisorPicker from '../../components/SupervisorPicker'
 
 export default function ProjectsList({ projects, profile, save, remove, onOpenProject }) {
   const [creating, setCreating] = useState(false)
+  const [people, setPeople] = useState({})
+
+  useEffect(() => {
+    fetchAllProfiles()
+      .then((all) => {
+        const map = {}
+        all.forEach((u) => (map[u.id] = u.full_name || u.email))
+        setPeople(map)
+      })
+      .catch(() => {})
+  }, [])
 
   return (
     <div>
@@ -113,6 +125,37 @@ export default function ProjectsList({ projects, profile, save, remove, onOpenPr
                     {td}/{tt} tasks
                   </span>
                 </div>
+
+                {/* Assigned supervisors */}
+                {(() => {
+                  const ids = projectSupervisorIds(p)
+                  if (ids.length === 0)
+                    return (
+                      <div style={{ fontSize: 11, color: C.t3, marginTop: 8, fontStyle: 'italic' }}>
+                        👷 No supervisor assigned
+                      </div>
+                    )
+                  return (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 8 }}>
+                      {ids.map((id) => (
+                        <span
+                          key={id}
+                          style={{
+                            background: C.blue + '12',
+                            border: '1px solid ' + C.blue + '30',
+                            borderRadius: 12,
+                            padding: '2px 9px',
+                            fontSize: 11,
+                            color: C.blue,
+                            fontWeight: 600,
+                          }}
+                        >
+                          👷 {people[id] || 'Supervisor'}
+                        </span>
+                      ))}
+                    </div>
+                  )
+                })()}
               </div>
 
               {isAdminRole(profile.role) && (
@@ -143,12 +186,20 @@ function NewProjectForm({ onCancel, onCreate }) {
   const [name, setName] = useState('')
   const [location, setLocation] = useState('')
   const [client, setClient] = useState('')
+  const [supervisorIds, setSupervisorIds] = useState([])
   const [busy, setBusy] = useState(false)
 
   const submit = async () => {
     if (!name.trim()) return
     setBusy(true)
-    await onCreate(newProject({ name: name.trim(), location: location.trim(), client: client.trim() }))
+    await onCreate(
+      newProject({
+        name: name.trim(),
+        location: location.trim(),
+        client: client.trim(),
+        supervisorIds,
+      })
+    )
     setBusy(false)
   }
 
@@ -158,6 +209,24 @@ function NewProjectForm({ onCancel, onCreate }) {
       <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Project name (e.g. Lot 531)" style={{ marginBottom: 10 }} />
       <Input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Site address" style={{ marginBottom: 10 }} />
       <Input value={client} onChange={(e) => setClient(e.target.value)} placeholder="Client / builder" style={{ marginBottom: 14 }} />
+      <div
+        style={{
+          fontFamily: "'JetBrains Mono', monospace",
+          fontSize: 11,
+          color: C.t2,
+          letterSpacing: 1,
+          marginBottom: 8,
+        }}
+      >
+        ASSIGN SUPERVISORS (optional)
+      </div>
+      <div style={{ marginBottom: 14 }}>
+        <SupervisorPicker
+          project={{ supervisorIds }}
+          onChange={setSupervisorIds}
+          compact
+        />
+      </div>
       <div style={{ display: 'flex', gap: 10 }}>
         <Btn onClick={submit} disabled={busy || !name.trim()}>
           {busy ? 'CREATING…' : 'CREATE PROJECT'}

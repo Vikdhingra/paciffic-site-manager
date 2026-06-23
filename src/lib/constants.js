@@ -38,6 +38,20 @@ export const DEFAULT_STAGES = [
 export const ADMIN_ROLES = ['admin', 'super_admin', 'superadmin']
 export const isAdminRole = (role) => ADMIN_ROLES.includes(role)
 
+// ── Supervisor assignment ────────────────────────────────────
+// Returns the list of supervisor IDs for a project, handling both the
+// new `supervisorIds` array and the legacy single `supervisorId`.
+export function projectSupervisorIds(project) {
+  if (Array.isArray(project.supervisorIds)) return project.supervisorIds
+  if (project.supervisorId) return [project.supervisorId]
+  return []
+}
+
+// Is this user assigned to this project?
+export function isAssigned(project, userId) {
+  return projectSupervisorIds(project).includes(userId)
+}
+
 // Small helpers
 export const uid = () => Math.random().toString(36).slice(2, 9)
 
