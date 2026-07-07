@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
-import { fetchOpenRequests, updateRequest, setTaskDone, fetchAllProfiles, fetchNewPhotos, archivePhoto } from '../../lib/api'
-import { projectPct, isComplete, taskCounts, activeStage, fmtShort, typeLabel } from '../../lib/helpers'
+import { fetchOpenRequests, updateRequest, setTaskDone, fetchAllProfiles, fetchNewPhotos, archivePhoto, fetchTodayDiaries } from '../../lib/api'
+import { projectPct, isComplete, taskCounts, activeStage, openTasksInActiveStage, fmtShort, typeLabel } from '../../lib/helpers'
 import { downloadRequestEvent } from '../../lib/calendar'
 import { Card, Tag, PriorityTag, Empty, Banner, Spinner, Segments, IconChip } from '../../components/ui'
 import { Avatar } from '../Shell'
@@ -15,6 +15,7 @@ export default function Dashboard({ projects, loaded, error, refresh, profile, o
   const [requests, setRequests] = useState([])
   const [people, setPeople] = useState({})
   const [photos, setPhotos] = useState([])
+  const [diaries, setDiaries] = useState({})
   const [viewer, setViewer] = useState(null)
   const [busy, setBusy] = useState(null)
 
@@ -29,6 +30,12 @@ export default function Dashboard({ projects, loaded, error, refresh, profile, o
       })
       .catch(() => {})
   }, [])
+
+  const projectIdsKey = projects.map((p) => p.id).join(',')
+  useEffect(() => {
+    if (!projects.length) return
+    fetchTodayDiaries(projects.map((p) => p.id)).then(setDiaries).catch(() => {})
+  }, [projectIdsKey])
 
   const byId = {}
   projects.forEach((p) => (byId[p.id] = p))
@@ -103,6 +110,54 @@ export default function Dashboard({ projects, loaded, error, refresh, profile, o
         <Kpi icon="target" tint="amber" label="Tasks done" val={totals.done + ' / ' + totals.total} onClick={onGoProjects} />
         <Kpi icon="flag" tint={requests.length ? 'red' : 'ink'} label="Open requests" val={requests.length} />
       </div>
+
+      {/* Today on site — the morning plan */}
+      <SectionHead icon="clock" tint="accent" title="Today on site" count={active.length} tone="accent" />
+      {active.length === 0 ? (
+        <AllClear>No active projects right now.</AllClear>
+      ) : (
+        <div className="g-cards" style={{ marginBottom: 26 }}>
+          {active.map((p) => {
+            const d = diaries[p.id]
+            const s = activeStage(p)
+            const jobs = d?.jobs?.length ? d.jobs : openTasksInActiveStage(p).map((t) => ({ taskId: t.id, title: t.title, done: false }))
+            const doneN = jobs.filter((j) => j.done).length
+            return (
+              <Card key={p.id} pad={0} onClick={() => onOpenProject(p.id, 'diary')} style={{ overflow: 'hidden' }}>
+                <div style={{ padding: '13px 15px 10px' }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9 }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 600, fontSize: 14, letterSpacing: '-0.01em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</div>
+                      <div className="sub" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {s?.name || '—'}{d?.supervisor_name ? ' · ' + d.supervisor_name : ''}
+                      </div>
+                    </div>
+                    <Tag tone={d ? 'green' : 'amber'}>{d ? 'Diary in' : 'No diary yet'}</Tag>
+                  </div>
+                </div>
+                <div style={{ borderTop: '1px solid var(--line)', padding: '9px 15px 12px', background: 'var(--surface-2)' }}>
+                  <div className="overline" style={{ fontSize: 10.5, marginBottom: 5 }}>
+                    {d?.jobs?.length ? "Today's jobs · " + doneN + '/' + jobs.length + ' done' : jobs.length ? 'Planned (from open tasks)' : 'Nothing planned'}
+                  </div>
+                  {jobs.slice(0, 5).map((j) => (
+                    <div key={j.taskId} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '2.5px 0', fontSize: 13 }}>
+                      <Icon name={j.done ? 'check' : 'clock'} size={12} style={{ color: j.done ? 'var(--green)' : 'var(--amber)', flexShrink: 0 }} />
+                      <span style={{ color: j.done ? 'var(--ink-3)' : 'var(--ink-2)', textDecoration: j.done ? 'line-through' : 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{j.title}</span>
+                    </div>
+                  ))}
+                  {jobs.length > 5 && <div className="sub" style={{ paddingLeft: 19, fontSize: 11.5 }}>+{jobs.length - 5} more</div>}
+                  {jobs.length === 0 && <div className="sub">No open tasks in this stage.</div>}
+                  {d && (d.delays || d.safety) && (
+                    <div style={{ marginTop: 7, background: 'var(--red-soft)', borderRadius: 8, padding: '6px 9px', fontSize: 12, color: 'var(--red)' }}>
+                      {d.delays ? 'Delays: ' + d.delays : ''}{d.delays && d.safety ? ' · ' : ''}{d.safety ? 'Safety: ' + d.safety : ''}
+                    </div>
+                  )}
+                </div>
+              </Card>
+            )
+          })}
+        </div>
+      )}
 
       {/* Requests from site */}
       <SectionHead icon="flag" tint="red" title="Requests from site" count={requests.length} tone="red" />

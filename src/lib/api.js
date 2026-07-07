@@ -364,3 +364,17 @@ export async function archivePhoto(id) {
   const { error } = await supabase.from('pm_photos').update({ archived: true }).eq('id', id)
   if (error) throw error
 }
+
+// ═══ ADMIN MORNING VIEW: today's diaries across projects ═══
+export async function fetchTodayDiaries(projectIds) {
+  if (!projectIds.length) return {}
+  const { data, error } = await supabase
+    .from('pm_diary')
+    .select('*')
+    .eq('entry_date', dayKey())
+    .in('project_id', projectIds)
+  if (error) throw error
+  const map = {}
+  ;(data || []).forEach((r) => (map[r.project_id] = r))
+  return map
+}
