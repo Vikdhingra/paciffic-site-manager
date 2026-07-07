@@ -240,9 +240,12 @@ create table if not exists pm_files (
   id uuid primary key default gen_random_uuid(),
   project_id uuid not null references pm_projects(id) on delete cascade,
   name text not null,
+  category text default '',
+  link_url text default '',
+  description text default '',
   size bigint default 0,
   mime text default '',
-  storage_path text not null,
+  storage_path text,
   uploaded_by uuid,
   uploaded_by_name text default '',
   created_at timestamptz default now()
@@ -275,3 +278,7 @@ create policy "pm-files auth read" on storage.objects for select to authenticate
 drop policy if exists "pm-files auth delete" on storage.objects;
 create policy "pm-files auth delete" on storage.objects for delete to authenticated
   using (bucket_id = 'pm-files');
+
+drop policy if exists "files assigned update" on pm_files;
+create policy "files assigned update" on pm_files for update to authenticated
+  using (pm_is_assigned(project_id));

@@ -390,22 +390,33 @@ export async function fetchFiles(projectId) {
   return data || []
 }
 
-export async function uploadProjectFile({ projectId, file, userId, userName }) {
-  const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
-  const path = projectId + '/' + Date.now() + '-' + safe
-  const { error: upErr } = await supabase.storage.from('pm-files').upload(path, file, {
-    cacheControl: '3600',
-    upsert: false,
-  })
-  if (upErr) throw upErr
+// Create a file record — either an uploaded file OR an external link.
+export async function createProjectFile({ projectId, name, category, description, file, linkUrl, userId, userName }) {
+  let storagePath = null
+  let size = 0
+  let mime = ''
+  if (file) {
+    const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
+    storagePath = projectId + '/' + Date.now() + '-' + safe
+    const { error: upErr } = await supabase.storage.from('pm-files').upload(storagePath, file, {
+      cacheControl: '3600',
+      upsert: false,
+    })
+    if (upErr) throw upErr
+    size = file.size
+    mime = file.type || ''
+  }
   const { data, error } = await supabase
     .from('pm_files')
     .insert({
       project_id: projectId,
-      name: file.name,
-      size: file.size,
-      mime: file.type || '',
-      storage_path: path,
+      name,
+      category: category || '',
+      description: description || '',
+      link_url: linkUrl || '',
+      size,
+      mime,
+      storage_path: storagePath,
       uploaded_by: userId || null,
       uploaded_by_name: userName || '',
     })
@@ -415,13 +426,21 @@ export async function uploadProjectFile({ projectId, file, userId, userName }) {
   return data
 }
 
+export async function updateProjectFile(id, patch) {
+  const { data, error } = await supabase.from('pm_files').update(patch).eq('id', id).select().single()
+  if (error) throw error
+  return data
+}
+
 export function fileUrl(row) {
+  if (row.link_url) return row.link_url
+  if (!row.storage_path) return '#'
   const { data } = supabase.storage.from('pm-files').getPublicUrl(row.storage_path)
   return data.publicUrl
 }
 
 export async function deleteProjectFile(row) {
-  await supabase.storage.from('pm-files').remove([row.storage_path])
+  if (row.storage_path) await supabase.storage.from('pm-files').remove([row.storage_path])
   const { error } = await supabase.from('pm_files').delete().eq('id', row.id)
   if (error) throw error
 }
