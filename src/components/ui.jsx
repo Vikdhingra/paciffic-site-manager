@@ -1,205 +1,102 @@
 import Icon from './icons'
 
-export function Spinner({ size = 40 }) {
-  return (
-    <div
-      className="spinner"
-      style={{ width: size, height: size, borderWidth: size > 24 ? 4 : 3 }}
-    />
-  )
+export function Spinner({ size = 32 }) {
+  return <div className="spinner" style={{ width: size, height: size }} />
 }
 
-export function FullSplash({ label = 'Loading…' }) {
+export function Splash({ label = 'Loading…' }) {
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 16,
-        background: 'var(--paper)',
-      }}
-    >
-      <Spinner size={48} />
-      <div className="eyebrow">{label}</div>
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 14 }}>
+      <Spinner size={36} />
+      <div className="sub">{label}</div>
     </div>
   )
 }
 
-export function Label({ children, style }) {
-  return (
-    <div className="h-card" style={style}>
-      {children}
-    </div>
-  )
-}
-
-export function Eyebrow({ children, style }) {
-  return (
-    <div className="eyebrow" style={style}>
-      {children}
-    </div>
-  )
-}
-
-// Variant map keeps the old API working across untouched files.
-const VARIANT_CLASS = {
+const BTN = {
   primary: 'btn-primary',
-  dark: 'btn-navy',
-  navy: 'btn-navy',
   green: 'btn-green',
   outline: 'btn-outline',
-  danger: 'btn-danger',
   ghost: 'btn-ghost',
-  onnavy: 'btn-onnavy',
+  danger: 'btn-danger',
 }
 
-export function Btn({ children, onClick, variant = 'primary', style, disabled, type = 'button', size, block, icon }) {
-  const cls = [
-    'btn',
-    VARIANT_CLASS[variant] || 'btn-primary',
-    size === 'sm' ? 'btn-sm' : size === 'lg' ? 'btn-lg' : '',
-    block ? 'btn-block' : '',
-  ]
-    .filter(Boolean)
-    .join(' ')
+export function Btn({ children, onClick, variant = 'primary', size, block, icon, disabled, style, type = 'button' }) {
   return (
-    <button type={type} onClick={onClick} disabled={disabled} className={cls} style={style}>
-      {icon && <Icon name={icon} size={size === 'sm' ? 15 : 17} />}
+    <button
+      type={type}
+      onClick={onClick}
+      disabled={disabled}
+      style={style}
+      className={['btn', BTN[variant] || 'btn-primary', size === 'lg' ? 'btn-lg' : '', block ? 'btn-block' : ''].filter(Boolean).join(' ')}
+    >
+      {icon && <Icon name={icon} size={size === 'lg' ? 16 : 15} />}
       {children}
     </button>
   )
 }
 
-export function Card({ children, style, onClick, className = '' }) {
+export function Card({ children, style, onClick, pad = 16 }) {
   return (
-    <div
-      onClick={onClick}
-      className={['card', onClick ? 'card-tap' : '', className].filter(Boolean).join(' ')}
-      style={{ padding: 18, ...style }}
-    >
+    <div onClick={onClick} className={['card', onClick ? 'card-tap' : ''].join(' ')} style={{ padding: pad, ...style }}>
       {children}
     </div>
   )
 }
 
-export function Input({ value, onChange, placeholder, type = 'text', style, label }) {
-  const input = (
-    <input
-      type={type}
-      value={value}
-      onChange={onChange}
-      placeholder={placeholder}
-      className="input"
-      style={label ? undefined : style}
-    />
-  )
-  if (!label) return input
+export function Field({ label, children, style }) {
   return (
-    <div style={style}>
-      <label className="field-label">{label}</label>
-      {input}
+    <div style={{ marginBottom: 13, ...style }}>
+      <label className="label">{label}</label>
+      {children}
     </div>
   )
 }
 
-const CHIP_CLASS = {
-  gold: 'chip-gold',
-  green: 'chip-green',
-  red: 'chip-red',
-  blue: 'chip-blue',
-  navy: 'chip-navy',
+export function Input(props) {
+  const { label, style, ...rest } = props
+  const el = <input className="input" {...rest} />
+  return label ? <Field label={label} style={style}>{el}</Field> : el
 }
 
-export function Pill({ children, tone = 'gold', color, icon }) {
-  // `color` kept for backward compatibility: map old hex colours to tones.
-  let t = tone
-  if (color) {
-    if (color === '#DC2626' || color === '#C0361F') t = 'red'
-    else if (color === '#059669' || color === '#157F3D') t = 'green'
-    else if (color === '#0284C7' || color === '#1D5FA8') t = 'blue'
-    else if (color === '#7C3AED') t = 'blue'
-    else t = 'gold'
-  }
+const TAG = { accent: 'tag-accent', green: 'tag-green', red: 'tag-red', amber: 'tag-amber' }
+
+export function Tag({ children, tone, icon }) {
   return (
-    <span className={['chip', CHIP_CLASS[t] || 'chip-gold'].join(' ')}>
-      {icon && <Icon name={icon} size={13} />}
+    <span className={['tag', TAG[tone] || ''].join(' ')}>
+      {icon && <Icon name={icon} size={12} />}
       {children}
     </span>
   )
 }
 
-// ── STAGE RAIL — segmented build-sequence bar (signature) ────
-export function StageRail({ project, large, style }) {
-  const stages = project.stages || []
-  const cur = project.currentStage ?? 0
+export function Dot({ color }) {
+  return <span className="dot" style={{ background: color }} />
+}
+
+export function Meter({ pct, done, style }) {
   return (
-    <div className={['rail', large ? 'rail-lg' : ''].join(' ')} style={style} title="Build stages">
-      {stages.map((s, i) => {
-        const done = s.status === 'complete' || i < cur
-        const active = !done && i === cur
-        return (
-          <div
-            key={s.id || i}
-            className={['rail-seg', done ? 'done' : active ? 'active' : ''].join(' ')}
-          />
-        )
-      })}
+    <div className={['meter', done ? 'done' : ''].join(' ')} style={style}>
+      <div style={{ width: pct + '%' }} />
     </div>
   )
 }
 
-// Project completion % — same formula used app-wide.
-export function projectPct(p) {
-  const sc = p.stages?.length || 0
-  if (sc <= 1) return 0
-  return Math.round(((p.currentStage ?? 0) / (sc - 1)) * 100)
-}
-
-export function projectIsDone(p) {
-  const sc = p.stages?.length || 0
-  return sc > 0 && (p.currentStage ?? 0) >= sc - 1
-}
-
-export function taskCounts(p) {
-  let total = 0
-  let done = 0
-  p.stages?.forEach((s) =>
-    s.tasks?.forEach((t) => {
-      total++
-      if (t.status === 'done') done++
-    })
+export function Tick({ done, onClick, label }) {
+  return (
+    <button className={['tick', done ? 'done' : ''].join(' ')} onClick={onClick} aria-label={label || (done ? 'Reopen' : 'Mark done')}>
+      {done && <Icon name="check" size={13} stroke={2.6} />}
+    </button>
   )
-  return { total, done }
 }
 
-// ── Modal (bottom sheet on mobile, centred on desktop) ───────
 export function Modal({ title, onClose, children }) {
   return (
-    <div className="modal-veil" onClick={onClose}>
+    <div className="veil" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <div style={{ display: 'flex', alignItems: 'center', marginBottom: 18 }}>
-          <div className="h-card" style={{ flex: 1, fontSize: 20 }}>
-            {title}
-          </div>
-          <button
-            onClick={onClose}
-            aria-label="Close"
-            style={{
-              background: 'var(--paper)',
-              border: '1px solid var(--line)',
-              borderRadius: 8,
-              width: 34,
-              height: 34,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              color: 'var(--ink-2)',
-            }}
-          >
+        <div style={{ display: 'flex', alignItems: 'center', marginBottom: 16 }}>
+          <div className="h1" style={{ flex: 1, fontSize: 17 }}>{title}</div>
+          <button className="btn btn-ghost btn-icon" onClick={onClose} aria-label="Close">
             <Icon name="close" size={16} />
           </button>
         </div>
@@ -209,27 +106,30 @@ export function Modal({ title, onClose, children }) {
   )
 }
 
-export function EmptyState({ icon = 'projects', title, children }) {
+export function Empty({ icon = 'projects', title, children, action }) {
   return (
-    <div className="card" style={{ textAlign: 'center', padding: '44px 20px' }}>
-      <div
-        style={{
-          width: 52,
-          height: 52,
-          borderRadius: 14,
-          background: 'var(--paper)',
-          border: '1px solid var(--line)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          margin: '0 auto 14px',
-          color: 'var(--ink-3)',
-        }}
-      >
-        <Icon name={icon} size={26} />
+    <div className="card" style={{ textAlign: 'center', padding: '40px 20px' }}>
+      <div style={{ width: 44, height: 44, borderRadius: 10, background: 'var(--surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px', color: 'var(--ink-3)' }}>
+        <Icon name={icon} size={22} />
       </div>
-      <div className="h-card" style={{ marginBottom: 5 }}>{title}</div>
-      <div style={{ fontSize: 13.5, color: 'var(--ink-3)' }}>{children}</div>
+      <div className="h2" style={{ marginBottom: 4 }}>{title}</div>
+      <div className="sub" style={{ marginBottom: action ? 14 : 0 }}>{children}</div>
+      {action}
     </div>
   )
+}
+
+export function Banner({ tone = 'red', children }) {
+  const bg = tone === 'red' ? 'var(--red-soft)' : tone === 'green' ? 'var(--green-soft)' : 'var(--amber-soft)'
+  const color = tone === 'red' ? 'var(--red)' : tone === 'green' ? 'var(--green)' : 'var(--amber)'
+  return (
+    <div style={{ background: bg, border: '1px solid ' + color + '33', borderRadius: 'var(--r)', padding: '9px 13px', fontSize: 13, color, marginBottom: 14 }}>
+      {children}
+    </div>
+  )
+}
+
+export function PriorityTag({ p }) {
+  const pr = p || 'medium'
+  return <Tag tone={pr === 'high' ? 'red' : pr === 'low' ? 'green' : 'amber'}>{pr}</Tag>
 }

@@ -4,28 +4,22 @@
 
 [build.environment]
   NODE_VERSION = "20"
-  # These are PUBLIC values (safe to expose in frontend builds).
-  # Tell Netlify's secret scanner not to flag them appearing in the bundle.
-  # SUPABASE_URL is the same public URL (used by the serverless function) and
-  # appears in README.md and the index.html preconnect tag.
+  # Public values — safe in frontend builds; stop the secret scanner flagging them.
   SECRETS_SCAN_OMIT_KEYS = "VITE_SUPABASE_URL,VITE_SUPABASE_ANON_KEY,SUPABASE_URL"
 
 [functions]
   node_bundler = "esbuild"
 
-# SPA fallback — all routes serve index.html
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
 
-# Never cache the HTML so new deploys show immediately
 [[headers]]
   for = "/index.html"
   [headers.values]
     Cache-Control = "no-cache, no-store, must-revalidate"
 
-# Hashed assets can be cached forever
 [[headers]]
   for = "/assets/*"
   [headers.values]

@@ -1,90 +1,46 @@
 import { useState, useEffect, useCallback } from 'react'
-import { supabase } from '../lib/supabase'
-import {
-  fetchProjects,
-  saveProject as dbSaveProject,
-  deleteProject as dbDeleteProject,
-} from '../lib/db'
+import { fetchProjects, fetchProject } from '../lib/api'
 
-// Loads all projects once, keeps them in sync via realtime,
-// and exposes save/delete helpers with optimistic updates.
+// Loads the full relational tree; granular mutations call the API
+// directly then refresh just the affected project.
 export function useProjects(enabled) {
   const [projects, setProjects] = useState([])
   const [loaded, setLoaded] = useState(false)
   const [error, setError] = useState(null)
 
-  // Initial load
-  useEffect(() => {
-    if (!enabled) return
-    let active = true
-    setLoaded(false)
+  const loadAll = useCallback(() => {
     setError(null)
-    fetchProjects()
-      .then((rows) => {
-        if (!active) return
-        setProjects(rows)
-        setLoaded(true)
-      })
+    return fetchProjects()
+      .then(setProjects)
       .catch((e) => {
-        if (!active) return
-        console.error('fetchProjects failed:', e)
-        setError(e.message || 'Failed to load projects')
-        setLoaded(true) // stop the spinner even on error
+        console.error(e)
+        setError(
+          /relation .*pm_/i.test(e.message || '')
+            ? 'Database tables not found — run setup-database.sql in Supabase, then reload.'
+            : e.message || 'Failed to load projects'
+        )
       })
-    return () => {
-      active = false
-    }
-  }, [enabled])
+      .finally(() => setLoaded(true))
+  }, [])
 
-  // Realtime sync
   useEffect(() => {
-    if (!enabled) return
-    const channel = supabase
-      .channel('sc_projects_changes')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'sc_projects' },
-        (payload) => {
-          if (payload.eventType === 'DELETE') {
-            setProjects((prev) => prev.filter((p) => p.id !== payload.old.id))
-          } else {
-            const u = { ...payload.new.data, id: payload.new.id, _updated: payload.new.updated_at }
-            setProjects((prev) => {
-              const i = prev.findIndex((p) => p.id === u.id)
-              return i >= 0 ? prev.map((p, j) => (j === i ? u : p)) : [u, ...prev]
-            })
-          }
-        }
-      )
-      .subscribe()
-    return () => {
-      supabase.removeChannel(channel)
-    }
-  }, [enabled])
+    if (enabled) loadAll()
+  }, [enabled, loadAll])
 
-  const save = useCallback(async (project) => {
-    // optimistic update
-    setProjects((prev) => {
-      const i = prev.findIndex((p) => p.id === project.id)
-      return i >= 0 ? prev.map((p, j) => (j === i ? project : p)) : [project, ...prev]
-    })
+  // Refresh a single project after a mutation
+  const refresh = useCallback(async (projectId) => {
     try {
-      await dbSaveProject(project)
-    } catch (e) {
-      console.error('saveProject failed:', e)
-      throw e
+      const fresh = await fetchProject(projectId)
+      setProjects((ps) => ps.map((p) => (p.id === projectId ? fresh : p)))
+      return fresh
+    } catch {
+      loadAll()
+      return null
     }
-  }, [])
+  }, [loadAll])
 
-  const remove = useCallback(async (id) => {
-    setProjects((prev) => prev.filter((p) => p.id !== id))
-    try {
-      await dbDeleteProject(id)
-    } catch (e) {
-      console.error('deleteProject failed:', e)
-      throw e
-    }
-  }, [])
+  const addLocal = useCallback((p) => setProjects((ps) => [p, ...ps]), [])
+  const removeLocal = useCallback((id) => setProjects((ps) => ps.filter((p) => p.id !== id)), [])
 
-  return { projects, loaded, error, save, remove, setProjects }
+  return { projects, loaded, error, loadAll, refresh, addLocal, removeLocal }
 }

@@ -1,14 +1,10 @@
 import { useState, useEffect } from 'react'
-import { C, projectSupervisorIds } from '../lib/constants'
-import { fetchAllProfiles } from '../lib/db'
+import { fetchAllProfiles } from '../lib/api'
 import { Spinner } from './ui'
+import Icon from './icons'
 
-// Multi-select supervisor assignment.
-// Props:
-//   project   – the project being edited
-//   onChange  – (newSupervisorIdsArray) => void  (called on every toggle)
-//   compact   – smaller styling for inline use
-export default function SupervisorPicker({ project, onChange, compact }) {
+// Multi-select supervisor list. value = array of user ids.
+export default function SupervisorPicker({ value = [], onChange }) {
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
 
@@ -19,33 +15,23 @@ export default function SupervisorPicker({ project, onChange, compact }) {
       .finally(() => setLoading(false))
   }, [])
 
-  const assigned = projectSupervisorIds(project)
-
-  const toggle = (id) => {
-    const next = assigned.includes(id)
-      ? assigned.filter((x) => x !== id)
-      : [...assigned, id]
-    onChange(next)
-  }
+  const toggle = (id) =>
+    onChange(value.includes(id) ? value.filter((x) => x !== id) : [...value, id])
 
   if (loading)
     return (
-      <div style={{ padding: 16, display: 'flex', justifyContent: 'center' }}>
-        <Spinner size={20} />
+      <div style={{ display: 'flex', justifyContent: 'center', padding: 14 }}>
+        <Spinner size={18} />
       </div>
     )
 
-  if (users.length === 0)
-    return (
-      <div style={{ fontSize: 13, color: C.t3, padding: '8px 0' }}>
-        No supervisors registered yet. They appear here once they sign up.
-      </div>
-    )
+  if (!users.length)
+    return <div className="sub">No supervisors yet — they appear here once they sign up.</div>
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
       {users.map((u) => {
-        const on = assigned.includes(u.id)
+        const on = value.includes(u.id)
         return (
           <button
             key={u.id}
@@ -53,49 +39,32 @@ export default function SupervisorPicker({ project, onChange, compact }) {
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: 10,
-              padding: compact ? '7px 10px' : '9px 12px',
-              borderRadius: 8,
-              border: '1px solid ' + (on ? C.green : C.border),
-              background: on ? '#F0FDF4' : '#fff',
+              gap: 9,
+              padding: '8px 11px',
+              borderRadius: 'var(--r)',
+              border: '1px solid ' + (on ? 'var(--accent)' : 'var(--line-2)'),
+              background: on ? 'var(--accent-soft)' : 'var(--surface)',
               cursor: 'pointer',
               textAlign: 'left',
-              width: '100%',
+              fontSize: 13.5,
+              color: 'var(--ink)',
+              transition: 'all 0.12s',
             }}
           >
-            <div
+            <span
               style={{
-                width: 22,
-                height: 22,
-                borderRadius: 6,
-                border: '2px solid ' + (on ? C.green : C.t3),
-                background: on ? C.green : '#fff',
-                color: '#fff',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: 13,
-                flexShrink: 0,
+                width: 17, height: 17, borderRadius: 5, flexShrink: 0,
+                border: '1.5px solid ' + (on ? 'var(--accent)' : 'var(--line-2)'),
+                background: on ? 'var(--accent)' : '#fff',
+                color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}
             >
-              {on ? '✓' : ''}
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div
-                style={{
-                  fontFamily: "'Barlow Condensed', sans-serif",
-                  fontWeight: 700,
-                  fontSize: 14,
-                  color: C.t1,
-                }}
-              >
-                {u.full_name || u.email}
-              </div>
-              <div style={{ fontSize: 11, color: C.t3 }}>
-                {u.email}
-                {u.role === 'admin' && ' · admin'}
-              </div>
-            </div>
+              {on && <Icon name="check" size={11} stroke={3} />}
+            </span>
+            <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {u.full_name || u.email}
+            </span>
+            {u.role === 'admin' && <span className="tag">admin</span>}
           </button>
         )
       })}
