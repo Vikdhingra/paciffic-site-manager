@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { fetchTodayDiaryStatus, fetchOpenRequestCounts } from '../../lib/api'
 import { projectPct, isComplete, activeStage, openTasksInActiveStage } from '../../lib/helpers'
-import { Meter, Tag, Empty, Banner, Spinner } from '../../components/ui'
+import { Segments, Tag, Empty, Banner, Spinner } from '../../components/ui'
 import Icon from '../../components/icons'
 
 // Supervisor home: today's diary status, jobs planned, quick actions.
@@ -70,7 +70,7 @@ export default function Today({ projects, loaded, error, onOpenProject }) {
                   )}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-                  <Meter pct={pct} done={done} style={{ flex: 1 }} />
+                  <Segments stages={p.stages} style={{ flex: 1 }} />
                   <span style={{ fontSize: 12, fontWeight: 600, color: done ? 'var(--green)' : 'var(--ink-2)' }}>{pct}%</span>
                 </div>
 

@@ -133,3 +133,22 @@ export function PriorityTag({ p }) {
   const pr = p || 'medium'
   return <Tag tone={pr === 'high' ? 'red' : pr === 'low' ? 'green' : 'amber'}>{pr}</Tag>
 }
+
+// Segmented stage meter — one segment per stage, coloured by status
+export function Segments({ stages = [], style }) {
+  return (
+    <div className="segs" style={style}>
+      {stages.map((s) => (
+        <span key={s.id} className={s.status === 'complete' ? 'done' : s.status === 'active' ? 'active' : ''} />
+      ))}
+    </div>
+  )
+}
+
+export function IconChip({ icon, tint = 'accent', sm }) {
+  return (
+    <span className={['chip-ic', sm ? 'sm' : '', 'tint-' + tint].join(' ')}>
+      <Icon name={icon} size={sm ? 15 : 19} />
+    </span>
+  )
+}

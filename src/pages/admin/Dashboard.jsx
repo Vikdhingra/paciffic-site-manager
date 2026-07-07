@@ -1,16 +1,30 @@
 import { useState, useEffect } from 'react'
-import { fetchOpenRequests, updateRequest, setTaskDone } from '../../lib/api'
+import { fetchOpenRequests, updateRequest, setTaskDone, fetchAllProfiles } from '../../lib/api'
 import { projectPct, isComplete, taskCounts, activeStage, fmtShort, typeLabel } from '../../lib/helpers'
 import { downloadRequestEvent } from '../../lib/calendar'
-import { Card, Tag, PriorityTag, Meter, Empty, Banner, Spinner } from '../../components/ui'
+import { Card, Tag, PriorityTag, Empty, Banner, Spinner, Segments, IconChip } from '../../components/ui'
+import { Avatar } from '../Shell'
 import Icon from '../../components/icons'
 
-export default function Dashboard({ projects, loaded, error, refresh, onOpenProject, onGoProjects, onNew }) {
+const greeting = () => {
+  const h = new Date().getHours()
+  return h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening'
+}
+
+export default function Dashboard({ projects, loaded, error, refresh, profile, onOpenProject, onGoProjects, onNew }) {
   const [requests, setRequests] = useState([])
+  const [people, setPeople] = useState({})
   const [busy, setBusy] = useState(null)
 
   useEffect(() => {
     fetchOpenRequests().then(setRequests).catch(() => {})
+    fetchAllProfiles()
+      .then((all) => {
+        const m = {}
+        all.forEach((u) => (m[u.id] = u))
+        setPeople(m)
+      })
+      .catch(() => {})
   }, [])
 
   const byId = {}
@@ -26,17 +40,14 @@ export default function Dashboard({ projects, loaded, error, refresh, onOpenProj
     { total: 0, done: 0 }
   )
 
-  // Attention: open high-priority or due tasks across active stages
   const attention = []
   active.forEach((p) => {
     const s = activeStage(p)
     s?.tasks?.forEach((t) => {
-      if (t.status !== 'done' && (t.priority === 'high' || t.due_date)) {
-        attention.push({ p, s, t })
-      }
+      if (t.status !== 'done' && (t.priority === 'high' || t.due_date)) attention.push({ p, s, t })
     })
   })
-  attention.sort((a, b) => (a.t.due_date || '9999') < (b.t.due_date || '9999') ? -1 : 1)
+  attention.sort((a, b) => ((a.t.due_date || '9999') < (b.t.due_date || '9999') ? -1 : 1))
 
   const patchRequest = async (id, changes) => {
     const updated = await updateRequest(id, changes).catch((e) => alert(e.message))
@@ -51,18 +62,28 @@ export default function Dashboard({ projects, loaded, error, refresh, onOpenProj
     setBusy(null)
   }
 
+  const firstName = (profile?.full_name || '').split(' ')[0] || 'there'
   const dateStr = new Date().toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long' })
 
   return (
     <div className="fade">
-      <div style={{ display: 'flex', alignItems: 'flex-end', marginBottom: 20 }}>
-        <div style={{ flex: 1 }}>
-          <div className="sub" style={{ marginBottom: 2 }}>{dateStr}</div>
-          <h1 className="h1">Dashboard</h1>
+      {/* Greeting band */}
+      <div className="greet">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+          <div style={{ flex: '1 1 260px' }}>
+            <div className="sub" style={{ marginBottom: 2 }}>{dateStr}</div>
+            <h1>{greeting()}, {firstName}</h1>
+            <div style={{ fontSize: 13.5, color: 'var(--ink-2)' }}>
+              {active.length} active build{active.length === 1 ? '' : 's'}
+              {requests.length > 0
+                ? ' · ' + requests.length + ' site request' + (requests.length === 1 ? '' : 's') + ' waiting'
+                : ' · site is all clear'}
+            </div>
+          </div>
+          <button className="btn btn-primary btn-lg" onClick={onNew}>
+            <Icon name="plus" size={16} /> New project
+          </button>
         </div>
-        <button className="btn btn-primary only-m" onClick={onNew}>
-          <Icon name="plus" size={15} /> Project
-        </button>
       </div>
 
       {!loaded && (
@@ -74,20 +95,16 @@ export default function Dashboard({ projects, loaded, error, refresh, onOpenProj
 
       {/* KPIs */}
       <div className="g-kpi" style={{ marginBottom: 26 }}>
-        <Kpi label="Active projects" val={active.length} onClick={onGoProjects} />
-        <Kpi label="Completed" val={done.length} onClick={onGoProjects} />
-        <Kpi label="Tasks done" val={totals.done + ' / ' + totals.total} onClick={onGoProjects} />
-        <Kpi label="Open requests" val={requests.length} tone={requests.length ? 'var(--red)' : undefined} />
+        <Kpi icon="projects" tint="accent" label="Active projects" val={active.length} onClick={onGoProjects} />
+        <Kpi icon="check" tint="green" label="Completed" val={done.length} onClick={onGoProjects} />
+        <Kpi icon="target" tint="amber" label="Tasks done" val={totals.done + ' / ' + totals.total} onClick={onGoProjects} />
+        <Kpi icon="flag" tint={requests.length ? 'red' : 'ink'} label="Open requests" val={requests.length} />
       </div>
 
       {/* Requests from site */}
-      <SectionHead icon="flag" title="Requests from site" count={requests.length} tone="red" />
+      <SectionHead icon="flag" tint="red" title="Requests from site" count={requests.length} tone="red" />
       {requests.length === 0 ? (
-        <Card style={{ marginBottom: 26 }} pad={14}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }} className="sub">
-            <Icon name="check" size={15} style={{ color: 'var(--green)' }} /> Nothing open — supervisors have everything they need.
-          </div>
-        </Card>
+        <AllClear>Nothing open — supervisors have everything they need.</AllClear>
       ) : (
         <div className="card" style={{ marginBottom: 26, overflow: 'hidden' }}>
           {requests.map((r) => (
@@ -132,13 +149,9 @@ export default function Dashboard({ projects, loaded, error, refresh, onOpenProj
       )}
 
       {/* Needs attention */}
-      <SectionHead icon="bell" title="Needs attention" count={attention.length} tone="amber" />
+      <SectionHead icon="bell" tint="amber" title="Needs attention" count={attention.length} tone="amber" />
       {attention.length === 0 ? (
-        <Card style={{ marginBottom: 26 }} pad={14}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }} className="sub">
-            <Icon name="check" size={15} style={{ color: 'var(--green)' }} /> No urgent or dated tasks outstanding.
-          </div>
-        </Card>
+        <AllClear>No urgent or dated tasks outstanding.</AllClear>
       ) : (
         <div className="card" style={{ marginBottom: 26, overflow: 'hidden' }}>
           {attention.slice(0, 8).map((item) => (
@@ -157,53 +170,84 @@ export default function Dashboard({ projects, loaded, error, refresh, onOpenProj
         </div>
       )}
 
-      {/* Recent projects */}
-      <SectionHead icon="projects" title="Projects" action={<button className="btn btn-ghost" onClick={onGoProjects}>View all</button>} />
+      {/* Projects */}
+      <SectionHead icon="projects" tint="accent" title="Projects" action={<button className="btn btn-ghost" onClick={onGoProjects}>View all</button>} />
       {projects.length === 0 ? (
         <Empty title="No projects yet">Create your first project to start tracking builds.</Empty>
       ) : (
-        <div className="card" style={{ overflow: 'hidden' }}>
-          {projects.slice(0, 6).map((p) => {
-            const pct = projectPct(p)
-            const s = activeStage(p)
-            const t = taskCounts(p)
-            const done = isComplete(p)
-            return (
-              <div key={p.id} className="row row-tap" onClick={() => onOpenProject(p.id)}>
-                <span className="dot" style={{ background: done ? 'var(--green)' : 'var(--accent)' }} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 500, fontSize: 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</div>
-                  <div className="sub">{done ? 'Complete' : s?.name || '—'} · {t.done}/{t.total} tasks</div>
-                </div>
-                <div style={{ width: 120 }} className="hide-m">
-                  <Meter pct={pct} done={done} />
-                </div>
-                <span style={{ fontSize: 12.5, fontWeight: 600, color: done ? 'var(--green)' : 'var(--ink-2)', width: 38, textAlign: 'right' }}>{pct}%</span>
-              </div>
-            )
-          })}
+        <div className="g-cards">
+          {projects.slice(0, 6).map((p) => (
+            <ProjectCard key={p.id} p={p} people={people} onOpen={() => onOpenProject(p.id)} />
+          ))}
         </div>
       )}
     </div>
   )
 }
 
-function Kpi({ label, val, onClick, tone }) {
+export function ProjectCard({ p, people, onOpen }) {
+  const pct = projectPct(p)
+  const s = activeStage(p)
+  const t = taskCounts(p)
+  const done = isComplete(p)
+  const sups = (p.supervisorIds || []).map((id) => people[id]).filter(Boolean)
   return (
-    <Card onClick={onClick} pad={14}>
-      <div style={{ fontSize: 22, fontWeight: 600, letterSpacing: '-0.02em', color: tone || 'var(--ink)' }}>{val}</div>
-      <div className="sub" style={{ marginTop: 2 }}>{label}</div>
+    <Card onClick={onOpen} pad={16}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 10 }}>
+        <IconChip icon={done ? 'check' : 'projects'} tint={done ? 'green' : 'accent'} sm />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontWeight: 600, fontSize: 14.5, letterSpacing: '-0.01em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</div>
+          <div className="sub" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.address || 'No address'}</div>
+        </div>
+        <span style={{ fontSize: 13, fontWeight: 650, color: done ? 'var(--green)' : 'var(--ink)' }}>{pct}%</span>
+      </div>
+      <Segments stages={p.stages} style={{ marginBottom: 10 }} />
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <span className="sub" style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {done ? 'Complete' : s?.name || '—'} · {t.done}/{t.total} tasks
+        </span>
+        <div style={{ display: 'flex' }}>
+          {sups.slice(0, 3).map((u, i) => (
+            <span key={u.id} style={{ marginLeft: i ? -7 : 0, border: '2px solid #fff', borderRadius: '50%', display: 'inline-flex' }}>
+              <Avatar name={u.full_name || u.email} size={22} />
+            </span>
+          ))}
+        </div>
+      </div>
     </Card>
   )
 }
 
-function SectionHead({ icon, title, count, tone, action }) {
+function Kpi({ icon, tint, label, val, onClick }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-      <Icon name={icon} size={16} style={{ color: 'var(--ink-3)' }} />
+    <div className="kpi" onClick={onClick}>
+      <IconChip icon={icon} tint={tint} />
+      <div>
+        <div className="kpi-num">{val}</div>
+        <div className="sub" style={{ marginTop: 1 }}>{label}</div>
+      </div>
+    </div>
+  )
+}
+
+function SectionHead({ icon, tint, title, count, tone, action }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 10 }}>
+      <IconChip icon={icon} tint={tint || 'ink'} sm />
       <div className="h2" style={{ flex: 1 }}>{title}</div>
       {count > 0 && <Tag tone={tone}>{count}</Tag>}
       {action}
     </div>
+  )
+}
+
+function AllClear({ children }) {
+  return (
+    <Card style={{ marginBottom: 26 }} pad={13}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+        <IconChip icon="check" tint="green" sm />
+        <span className="sub">{children}</span>
+      </div>
+    </Card>
   )
 }

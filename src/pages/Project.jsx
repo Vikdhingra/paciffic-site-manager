@@ -3,7 +3,7 @@ import {
   completeStage, reopenStage, setActiveStage, addTask, setTaskDone, deleteTask, setAssignments,
 } from '../lib/api'
 import { projectPct, isComplete, activeStage, fmtShort } from '../lib/helpers'
-import { Btn, Card, Meter, Tick, Tag, PriorityTag, Field, Input } from '../components/ui'
+import { Btn, Card, Segments, Tick, Tag, PriorityTag, Field, Input } from '../components/ui'
 import Icon from '../components/icons'
 import SupervisorPicker from '../components/SupervisorPicker'
 import DiaryTab from './project/DiaryTab'
@@ -64,7 +64,7 @@ export default function Project(props) {
             <span style={{ fontSize: 13, fontWeight: 600, color: done ? 'var(--green)' : 'var(--ink)' }}>{pct}%</span>
             {done && <Tag tone="green">Complete</Tag>}
           </div>
-          <Meter pct={pct} done={done} style={{ width: 140 }} />
+          <Segments stages={p.stages} style={{ width: 170 }} />
         </div>
       </div>
 

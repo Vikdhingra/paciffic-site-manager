@@ -264,7 +264,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .side-foot { margin-top: auto; border-top: 1px solid var(--line); padding-top: 10px; }
 
 .main { flex: 1; min-width: 0; }
-.page { max-width: 1080px; margin: 0 auto; padding: 28px 32px 56px; }
+.page { max-width: 1160px; padding: 26px 36px 56px; }
 
 .mobile-top { display: none; }
 .mobile-nav { display: none; }
@@ -370,3 +370,47 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   .hide-m { display: none !important; }
 }
 @media (min-width: 781px) { .only-m { display: none !important; } }
+
+/* ── Greeting ─────────────────────────────────────────────── */
+.greet {
+  border-radius: var(--r-lg);
+  border: 1px solid var(--line);
+  background: linear-gradient(120deg, #ffffff 0%, #f2f2fd 55%, #eef6f1 100%);
+  padding: 20px 22px;
+  margin-bottom: 22px;
+}
+.greet h1 { font-size: 22px; font-weight: 650; letter-spacing: -0.02em; margin-bottom: 3px; }
+
+/* ── KPI cards ────────────────────────────────────────────── */
+.kpi {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow);
+  padding: 14px 15px;
+  cursor: pointer;
+  transition: border-color 0.12s, transform 0.12s;
+}
+.kpi:hover { border-color: var(--line-2); }
+.kpi-num { font-size: 22px; font-weight: 650; letter-spacing: -0.02em; line-height: 1.1; }
+
+/* Tinted icon chips */
+.chip-ic {
+  width: 38px; height: 38px; border-radius: 10px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.chip-ic.sm { width: 28px; height: 28px; border-radius: 8px; }
+.tint-accent { background: var(--accent-soft); color: var(--accent-strong); }
+.tint-green { background: var(--green-soft); color: var(--green); }
+.tint-red { background: var(--red-soft); color: var(--red); }
+.tint-amber { background: var(--amber-soft); color: var(--amber); }
+.tint-ink { background: var(--surface-2); color: var(--ink-2); }
+
+/* ── Segmented stage meter ────────────────────────────────── */
+.segs { display: flex; gap: 3px; }
+.segs > span { flex: 1; height: 6px; border-radius: 3px; background: var(--line); }
+.segs > span.done { background: var(--green); }
+.segs > span.active { background: var(--accent); }

@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react'
 import { projectPct, isComplete, taskCounts, activeStage } from '../../lib/helpers'
 import { deleteProjectById } from '../../lib/api'
-import { Meter, Empty, Tag } from '../../components/ui'
+import { Segments, Empty, Tag } from '../../components/ui'
 import Icon from '../../components/icons'
 
 const FILTERS = [
@@ -85,8 +85,8 @@ export default function Projects({ projects, isAdmin, removeLocal, onOpenProject
                     {' · ' + t.done + '/' + t.total + ' tasks'}
                   </div>
                 </div>
-                <div style={{ width: 140 }} className="hide-m">
-                  <Meter pct={pct} done={done} />
+                <div style={{ width: 150 }} className="hide-m">
+                  <Segments stages={p.stages} />
                 </div>
                 <span style={{ fontSize: 12.5, fontWeight: 600, color: done ? 'var(--green)' : 'var(--ink-2)', width: 38, textAlign: 'right' }}>{pct}%</span>
                 {isAdmin && (
