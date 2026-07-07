@@ -84,8 +84,8 @@ export default function UsersPage({ profile }) {
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'center', marginBottom: 18 }}>
-        <Label style={{ fontSize: 20, flex: 1 }}>TEAM &amp; USERS</Label>
-        {canManage && <Btn onClick={() => setAdding(true)}>+ ADD USER</Btn>}
+        <h1 className="h-page" style={{ flex: 1 }}>Team &amp; users</h1>
+        {canManage && <Btn size="sm" onClick={() => setAdding(true)}>+ Add user</Btn>}
       </div>
 
       {toast && (

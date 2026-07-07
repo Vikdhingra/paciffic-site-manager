@@ -1,570 +1,225 @@
 import { useState } from 'react'
-import { C } from '../../lib/constants'
-import { computeStats, buildReminders, buildActivity, buildNotes } from '../../lib/derive'
+import { computeStats, buildReminders, buildNotes } from '../../lib/derive'
 import { fmtDateShort, timeAgo } from '../../lib/constants'
-import { Card, Label, Spinner, Pill } from '../../components/ui'
-import { ProgressRing, StackedBar } from '../../components/charts'
+import { Card, Spinner, StageRail, projectPct, projectIsDone, taskCounts, EmptyState, Eyebrow } from '../../components/ui'
+import Icon from '../../components/icons'
 
-export default function AdminDashboard({ projects, loaded, error, onOpenProject, onGoProjects }) {
-  const [dismissed, setDismissed] = useState([])
+export default function AdminDashboard({ projects, loaded, error, save, onOpenProject, onGoProjects, onNewProject }) {
+  const [busyTask, setBusyTask] = useState(null)
 
   const stats = computeStats(projects)
-  const reminders = buildReminders(projects)
-    .filter((r) => !dismissed.includes(r.id))
-    .slice(0, 12)
-  const activity = buildActivity(projects)
-    .filter((a) => !dismissed.includes(a.id))
-    .slice(0, 8)
+  const reminders = buildReminders(projects).slice(0, 8)
   const notes = buildNotes(projects).slice(0, 5)
   const recent = [...projects]
     .sort((a, b) => new Date(b._updated || b.createdAt) - new Date(a._updated || a.createdAt))
     .slice(0, 6)
 
-  const hour = new Date().getHours()
-  const greet = hour < 12 ? 'GOOD MORNING' : hour < 17 ? 'GOOD AFTERNOON' : 'GOOD EVENING'
   const dateStr = new Date().toLocaleDateString('en-AU', {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
-    year: 'numeric',
   })
 
-  const dismiss = (id) => setDismissed((d) => [...d, id])
+  // One-tap: mark a task done straight from the dashboard.
+  const completeTask = async (item) => {
+    setBusyTask(item.id)
+    const p = item.proj
+    const stages = p.stages.map((s) =>
+      s.id === item.stage.id
+        ? {
+            ...s,
+            tasks: s.tasks.map((t) =>
+              t.id === item.task.id ? { ...t, status: 'done', doneAt: new Date().toISOString() } : t
+            ),
+          }
+        : s
+    )
+    await save({ ...p, stages })
+    setBusyTask(null)
+  }
 
-  const statCards = [
-    { label: 'PROJECTS', val: stats.total, color: '#fff', icon: '🏗️' },
-    { label: 'ACTIVE', val: stats.active, color: '#FCD34D', icon: '⚡' },
-    { label: 'COMPLETED', val: stats.completed, color: '#6EE7B7', icon: '✓' },
-    { label: 'TASKS', val: stats.doneTasks + '/' + stats.allTasks, color: '#93C5FD', icon: '📋' },
+  const kpis = [
+    { label: 'Projects', val: stats.total, icon: 'projects', tint: 'var(--navy)' },
+    { label: 'Active', val: stats.active, icon: 'clock', tint: 'var(--gold-strong)' },
+    { label: 'Completed', val: stats.completed, icon: 'check', tint: 'var(--green)' },
+    { label: 'Tasks done', val: stats.doneTasks + '/' + stats.allTasks, icon: 'flag', tint: 'var(--blue)' },
   ]
 
   return (
-    <div>
-      {/* Sync / error banner */}
+    <div className="rise">
+      {/* Page header */}
+      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 14, marginBottom: 18 }}>
+        <div style={{ flex: 1 }}>
+          <Eyebrow style={{ marginBottom: 3 }}>{dateStr}</Eyebrow>
+          <h1 className="h-page">Dashboard</h1>
+        </div>
+        <button className="btn btn-primary only-mobile btn-sm" onClick={onNewProject}>
+          <Icon name="plus" size={15} /> Project
+        </button>
+      </div>
+
       {!loaded && (
-        <div
-          style={{
-            background: C.amber + '15',
-            border: '1px solid ' + C.amber + '40',
-            borderRadius: 8,
-            padding: '8px 14px',
-            marginBottom: 14,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-            fontFamily: "'JetBrains Mono', monospace",
-            fontSize: 11,
-            color: C.amber,
-          }}
-        >
-          <Spinner size={14} /> Syncing latest data…
+        <div className="card" style={{ padding: '10px 16px', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, color: 'var(--ink-2)' }}>
+          <Spinner size={15} /> Syncing latest data…
         </div>
       )}
       {error && (
-        <div
-          style={{
-            background: '#FEF2F2',
-            border: '1px solid #FCA5A5',
-            borderRadius: 8,
-            padding: '10px 14px',
-            marginBottom: 14,
-            fontSize: 13,
-            color: C.red,
-          }}
-        >
-          ⚠️ {error}
+        <div className="card" style={{ padding: '12px 16px', marginBottom: 14, borderColor: '#f0cdc5', background: 'var(--red-soft)', color: 'var(--red)', fontSize: 13.5 }}>
+          {error}
         </div>
       )}
 
-      {/* ── GRAPHICAL HERO BANNER ── */}
-      <div
-        style={{
-          background: 'linear-gradient(135deg, #0D1B3E 0%, #16284f 55%, #1E3A5F 100%)',
-          borderRadius: 18,
-          padding: '24px 26px',
-          marginBottom: 22,
-          position: 'relative',
-          overflow: 'hidden',
-          boxShadow: '0 12px 36px rgba(13,27,62,0.25)',
-        }}
-      >
-        {/* decorative gold glow */}
-        <div
-          style={{
-            position: 'absolute',
-            top: -60,
-            right: -40,
-            width: 220,
-            height: 220,
-            borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(184,150,12,0.25) 0%, transparent 70%)',
-          }}
-        />
-        <div
-          className="hero-row"
-          style={{ display: 'flex', alignItems: 'center', gap: 28, position: 'relative', flexWrap: 'wrap' }}
-        >
-          {/* Greeting + stats */}
-          <div style={{ flex: 1, minWidth: 220 }}>
-            <div
-              style={{
-                fontFamily: "'JetBrains Mono', monospace",
-                fontSize: 10,
-                color: C.amber,
-                letterSpacing: 2,
-                marginBottom: 4,
-              }}
-            >
-              {dateStr.toUpperCase()} · AEST
-            </div>
-            <div
-              style={{
-                fontFamily: "'Barlow Condensed', sans-serif",
-                fontWeight: 800,
-                fontSize: 34,
-                color: '#fff',
-                lineHeight: 1,
-                marginBottom: 18,
-              }}
-            >
-              {greet}
-            </div>
-
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit,minmax(110px,1fr))',
-                gap: 10,
-              }}
-            >
-              {statCards.map((c) => (
-                <button
-                  key={c.label}
-                  onClick={onGoProjects}
-                  style={{
-                    background: 'rgba(255,255,255,0.06)',
-                    border: '1px solid rgba(255,255,255,0.12)',
-                    borderRadius: 12,
-                    padding: '12px 14px',
-                    textAlign: 'left',
-                    cursor: 'pointer',
-                  }}
-                >
-                  <div style={{ fontSize: 16, marginBottom: 4 }}>{c.icon}</div>
-                  <div
-                    style={{
-                      fontFamily: "'Barlow Condensed', sans-serif",
-                      fontWeight: 800,
-                      fontSize: 26,
-                      color: c.color,
-                      lineHeight: 1,
-                    }}
-                  >
-                    {c.val}
-                  </div>
-                  <div
-                    style={{
-                      fontFamily: "'JetBrains Mono', monospace",
-                      fontSize: 8,
-                      color: 'rgba(255,255,255,0.6)',
-                      letterSpacing: 1,
-                      marginTop: 3,
-                    }}
-                  >
-                    {c.label}
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Completion ring */}
-          <div style={{ textAlign: 'center', flexShrink: 0 }}>
-            <ProgressRingDark pct={stats.pct} />
-            <div
-              style={{
-                fontFamily: "'JetBrains Mono', monospace",
-                fontSize: 9,
-                color: 'rgba(255,255,255,0.6)',
-                letterSpacing: 1,
-                marginTop: 8,
-              }}
-            >
-              OVERALL COMPLETION
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Reminders */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-        <Label>🔔 REMINDERS &amp; TASKS</Label>
-        {reminders.length > 0 && <Pill color={C.red}>{reminders.length}</Pill>}
-      </div>
-      {reminders.length === 0 ? (
-        <Card style={{ color: C.t3, fontStyle: 'italic', fontSize: 13, marginBottom: 22 }}>
-          No overdue tasks or upcoming deadlines — all clear! ✓
-        </Card>
-      ) : (
-        <div style={gridStyle}>
-          {reminders.map((r) => (
-            <ReminderCard key={r.id} item={r} onDismiss={dismiss} onClick={onOpenProject} />
-          ))}
-        </div>
-      )}
-
-      {/* Activity */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '22px 0 12px' }}>
-        <Label>📝 RECENT NOTES &amp; ACTIVITY</Label>
-        {activity.length > 0 && <Pill color={C.purple}>{activity.length}</Pill>}
-      </div>
-      {activity.length === 0 ? (
-        <Card style={{ color: C.t3, fontStyle: 'italic', fontSize: 13, marginBottom: 22 }}>
-          No recent activity — completed tasks will appear here
-        </Card>
-      ) : (
-        <div style={gridStyle}>
-          {activity.map((a) => (
-            <ActivityCard key={a.id} item={a} onDismiss={dismiss} />
-          ))}
-        </div>
-      )}
-
-      {/* spacer before lower panels */}
-      <div style={{ height: 22 }} />
-
-      {/* Recent projects + notes */}
-      <div
-        className="grid-2col"
-        style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}
-      >
-        <Card>
-          <Label style={{ fontSize: 14, marginBottom: 12 }}>RECENT PROJECTS</Label>
-          {recent.length === 0 && (
-            <div style={{ color: C.t3, fontSize: 13, textAlign: 'center', padding: 20 }}>
-              No projects yet
-            </div>
-          )}
-          {recent.map((p) => {
-            const sc = p.stages?.length || 0
-            const pct = sc <= 1 ? 0 : Math.round((p.currentStage / (sc - 1)) * 100)
-            const isDone = p.currentStage >= sc - 1
-            const pc = p.color || C.amber
-            const tt = p.stages?.reduce((a, s) => a + (s.tasks?.length || 0), 0) || 0
-            const td =
-              p.stages?.reduce(
-                (a, s) => a + (s.tasks?.filter((t) => t.status === 'done').length || 0),
-                0
-              ) || 0
-            return (
-              <button
-                key={p.id}
-                onClick={() => onOpenProject(p)}
-                style={{
-                  width: '100%',
-                  textAlign: 'left',
-                  background: C.bg,
-                  border: '1px solid ' + C.border,
-                  borderLeft: '4px solid ' + pc,
-                  borderRadius: 10,
-                  padding: '10px 13px',
-                  marginBottom: 8,
-                  cursor: 'pointer',
-                }}
-              >
-                <div
-                  style={{
-                    fontFamily: "'Barlow Condensed', sans-serif",
-                    fontWeight: 700,
-                    fontSize: 15,
-                    color: C.t1,
-                    marginBottom: 3,
-                  }}
-                >
-                  {p.name}
-                </div>
-                <div style={{ fontSize: 11, color: C.t2, marginBottom: 6 }}>
-                  {p.location || 'No location'}
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <div style={{ flex: 1, background: C.border, borderRadius: 3, height: 5 }}>
-                    <div
-                      style={{
-                        width: pct + '%',
-                        height: '100%',
-                        background: isDone ? C.green : pc,
-                        borderRadius: 3,
-                      }}
-                    />
-                  </div>
-                  <span
-                    style={{
-                      fontFamily: "'Barlow Condensed', sans-serif",
-                      fontWeight: 700,
-                      fontSize: 12,
-                      color: isDone ? C.green : pc,
-                    }}
-                  >
-                    {pct}%
-                  </span>
-                  <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, color: C.t3 }}>
-                    {td}/{tt}
-                  </span>
-                </div>
-              </button>
-            )
-          })}
-        </Card>
-
-        <Card>
-          <Label style={{ fontSize: 14, marginBottom: 12 }}>SUPERVISOR NOTES</Label>
-          {notes.length === 0 && (
-            <div style={{ color: C.t3, fontSize: 12, textAlign: 'center', padding: 20 }}>
-              No notes yet
-            </div>
-          )}
-          {notes.map((n, i) => (
-            <button
-              key={i}
-              onClick={() => onOpenProject(n.project)}
-              style={{
-                width: '100%',
-                textAlign: 'left',
-                background: C.bg,
-                border: '1px solid ' + C.border,
-                borderLeft: '3px solid ' + C.purple,
-                borderRadius: 8,
-                padding: '9px 11px',
-                marginBottom: 7,
-                cursor: 'pointer',
-              }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
-                <div
-                  style={{
-                    fontFamily: "'Barlow Condensed', sans-serif",
-                    fontWeight: 700,
-                    fontSize: 13,
-                    color: C.t1,
-                  }}
-                >
-                  {n.project.name}
-                </div>
-                <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, color: C.purple }}>
-                  {timeAgo(n.notedAt)}
-                </div>
-              </div>
-              <div
-                style={{
-                  fontFamily: "'JetBrains Mono', monospace",
-                  fontSize: 9,
-                  color: C.purple,
-                  marginBottom: 4,
-                }}
-              >
-                {n.stage.name}
-              </div>
-              {n.achievements && (
-                <div style={oneLine(C.green)}>{n.achievements}</div>
-              )}
-              {n.notes && <div style={oneLine(C.t2)}>{n.notes}</div>}
-            </button>
-          ))}
-        </Card>
-      </div>
-    </div>
-  )
-}
-
-const gridStyle = {
-  display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fill,minmax(280px,1fr))',
-  gap: 10,
-}
-
-const oneLine = (color) => ({
-  fontSize: 11,
-  color,
-  overflow: 'hidden',
-  textOverflow: 'ellipsis',
-  whiteSpace: 'nowrap',
-})
-
-function ReminderCard({ item, onDismiss, onClick }) {
-  const pri = item.priority
-  const priBg = pri === 'high' ? '#FEE2E2' : pri === 'medium' ? '#FEF3C7' : '#F0FDF4'
-  const priColor = pri === 'high' ? '#DC2626' : pri === 'medium' ? '#B8960C' : '#16A34A'
-  return (
-    <div
-      onClick={() => onClick && onClick(item.proj)}
-      style={{
-        background: '#fff',
-        border: '1px solid ' + C.border,
-        borderLeft: '4px solid ' + item.color,
-        borderRadius: 12,
-        padding: '14px 16px',
-        cursor: 'pointer',
-        position: 'relative',
-        boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
-      }}
-    >
-      <button onClick={(e) => { e.stopPropagation(); onDismiss(item.id) }} style={xBtn}>
-        ×
-      </button>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-        <span style={{ fontSize: 18 }}>{item.icon}</span>
-        <div
-          style={{
-            fontFamily: "'Barlow Condensed', sans-serif",
-            fontWeight: 700,
-            fontSize: 12,
-            color: item.color,
-            letterSpacing: 1,
-          }}
-        >
-          {item.title}
-        </div>
-        {pri && (
-          <div
-            style={{
-              background: priBg,
-              border: '1px solid ' + priColor + '40',
-              borderRadius: 5,
-              padding: '2px 8px',
-              fontFamily: "'Barlow Condensed', sans-serif",
-              fontWeight: 700,
-              fontSize: 10,
-              color: priColor,
-              marginLeft: 'auto',
-              marginRight: 18,
-            }}
+      {/* KPI strip */}
+      <div className="kpi-grid" style={{ marginBottom: 24 }}>
+        {kpis.map((k) => (
+          <button
+            key={k.label}
+            className="card card-tap"
+            onClick={onGoProjects}
+            style={{ padding: '16px 16px', textAlign: 'left', display: 'flex', gap: 13, alignItems: 'center', border: '1px solid var(--line)' }}
           >
-            {pri.toUpperCase()}
-          </div>
-        )}
+            <div
+              style={{
+                width: 42,
+                height: 42,
+                borderRadius: 11,
+                background: 'var(--paper)',
+                border: '1px solid var(--line)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: k.tint,
+              }}
+            >
+              <Icon name={k.icon} size={21} />
+            </div>
+            <div>
+              <div className="num" style={{ fontSize: 26, lineHeight: 1, color: 'var(--ink)' }}>{k.val}</div>
+              <div className="eyebrow" style={{ marginTop: 3 }}>{k.label}</div>
+            </div>
+          </button>
+        ))}
       </div>
-      <div
-        style={{
-          fontFamily: "'Barlow Condensed', sans-serif",
-          fontWeight: 700,
-          fontSize: 18,
-          color: C.t1,
-          marginBottom: 4,
-          lineHeight: 1.2,
-        }}
-      >
-        {item.desc}
+
+      {/* Needs attention — actionable */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 12 }}>
+        <Icon name="bell" size={18} style={{ color: 'var(--gold-strong)' }} />
+        <div className="h-card">Needs attention</div>
+        {reminders.length > 0 && <span className="chip chip-gold">{reminders.length}</span>}
       </div>
-      {item.dueDate && (
-        <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, color: item.color, marginBottom: 4 }}>
-          DUE: {fmtDateShort(item.dueDate)}
+
+      {reminders.length === 0 ? (
+        <Card style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'var(--green)', fontSize: 14, marginBottom: 26, padding: '15px 18px' }}>
+          <Icon name="check" size={18} /> All clear — no open or overdue tasks.
+        </Card>
+      ) : (
+        <div className="grid-cards" style={{ marginBottom: 26 }}>
+          {reminders.map((r) => (
+            <div key={r.id} className="card" style={{ padding: '15px 16px' }}>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
+                <span className={['chip', r.priority === 'high' ? 'chip-red' : r.priority === 'low' ? 'chip-green' : 'chip-gold'].join(' ')}>
+                  {(r.priority || 'medium') + ' priority'}
+                </span>
+                {r.dueDate && (
+                  <span className="chip">
+                    <Icon name="clock" size={12} /> {fmtDateShort(r.dueDate)}
+                  </span>
+                )}
+              </div>
+              <div style={{ fontFamily: 'var(--disp)', fontWeight: 700, fontSize: 17, lineHeight: 1.25, marginBottom: 4 }}>
+                {r.desc}
+              </div>
+              <div style={{ fontSize: 12.5, color: 'var(--ink-3)', marginBottom: 12 }}>{r.project}</div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button
+                  className="btn btn-green btn-sm"
+                  disabled={busyTask === r.id}
+                  onClick={() => completeTask(r)}
+                >
+                  <Icon name="check" size={14} /> {busyTask === r.id ? 'Saving…' : 'Mark done'}
+                </button>
+                <button className="btn btn-ghost btn-sm" onClick={() => onOpenProject(r.proj)}>
+                  Open project
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
       )}
-      <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, color: C.t3 }}>
-        📁 {item.project}
+
+      {/* Recent projects + site notes */}
+      <div className="grid-2col">
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', marginBottom: 12 }}>
+            <div className="h-card" style={{ flex: 1 }}>Recent projects</div>
+            <button className="btn btn-ghost btn-sm" onClick={onGoProjects}>View all</button>
+          </div>
+          {recent.length === 0 ? (
+            <EmptyState title="No projects yet">Create your first project to start tracking builds.</EmptyState>
+          ) : (
+            recent.map((p) => {
+              const pct = projectPct(p)
+              const done = projectIsDone(p)
+              const t = taskCounts(p)
+              return (
+                <button
+                  key={p.id}
+                  onClick={() => onOpenProject(p)}
+                  className="card card-tap"
+                  style={{ width: '100%', textAlign: 'left', padding: '13px 16px', marginBottom: 9, border: '1px solid var(--line)' }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 3 }}>
+                    <div style={{ fontFamily: 'var(--disp)', fontWeight: 700, fontSize: 16.5, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {p.name}
+                    </div>
+                    <span className="num" style={{ fontSize: 15, color: done ? 'var(--green)' : 'var(--gold-strong)' }}>{pct}%</span>
+                  </div>
+                  <div style={{ fontSize: 12.5, color: 'var(--ink-3)', marginBottom: 9 }}>
+                    {p.location || 'No address'} · {t.done}/{t.total} tasks
+                  </div>
+                  <StageRail project={p} />
+                </button>
+              )
+            })
+          )}
+        </div>
+
+        <div>
+          <div className="h-card" style={{ marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Icon name="note" size={18} style={{ color: 'var(--ink-3)' }} /> Site notes
+          </div>
+          {notes.length === 0 ? (
+            <EmptyState icon="note" title="No notes yet">Supervisor site notes will appear here.</EmptyState>
+          ) : (
+            notes.map((n, i) => (
+              <button
+                key={i}
+                onClick={() => onOpenProject(n.project)}
+                className="card card-tap"
+                style={{ width: '100%', textAlign: 'left', padding: '12px 15px', marginBottom: 9, border: '1px solid var(--line)' }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
+                  <div style={{ fontFamily: 'var(--disp)', fontWeight: 700, fontSize: 14.5, flex: 1 }}>
+                    {n.project.name}
+                  </div>
+                  <span style={{ fontSize: 11.5, color: 'var(--ink-3)' }}>{timeAgo(n.notedAt)}</span>
+                </div>
+                <div className="eyebrow" style={{ fontSize: 10.5, marginBottom: 5 }}>{n.stage.name}</div>
+                {n.achievements && <NoteLine color="var(--green)">{n.achievements}</NoteLine>}
+                {n.notes && <NoteLine color="var(--ink-2)">{n.notes}</NoteLine>}
+              </button>
+            ))
+          )}
+        </div>
       </div>
     </div>
   )
 }
 
-function ActivityCard({ item, onDismiss }) {
+function NoteLine({ color, children }) {
   return (
-    <div
-      style={{
-        background: '#fff',
-        border: '1px solid ' + C.border,
-        borderLeft: '4px solid ' + item.color,
-        borderRadius: 12,
-        padding: '14px 16px',
-        position: 'relative',
-        boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
-      }}
-    >
-      <button onClick={() => onDismiss(item.id)} style={xBtn}>
-        ×
-      </button>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-        <span style={{ fontSize: 16 }}>{item.icon}</span>
-        <div
-          style={{
-            fontFamily: "'Barlow Condensed', sans-serif",
-            fontWeight: 700,
-            fontSize: 12,
-            color: item.color,
-            letterSpacing: 1,
-          }}
-        >
-          {item.title}
-        </div>
-      </div>
-      <div
-        style={{
-          fontFamily: "'Barlow Condensed', sans-serif",
-          fontWeight: 700,
-          fontSize: 18,
-          color: C.t1,
-          marginBottom: 4,
-          lineHeight: 1.2,
-        }}
-      >
-        {item.desc}
-      </div>
-      <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 10, color: C.t3 }}>
-        📁 {item.project}
-      </div>
-    </div>
-  )
-}
-
-const xBtn = {
-  position: 'absolute',
-  top: 8,
-  right: 10,
-  background: 'transparent',
-  border: 'none',
-  color: C.t3,
-  cursor: 'pointer',
-  fontSize: 18,
-  lineHeight: 1,
-  padding: 0,
-}
-
-// White-on-navy progress ring for the hero banner
-function ProgressRingDark({ pct, size = 116, stroke = 11 }) {
-  const r = (size - stroke) / 2
-  const circ = 2 * Math.PI * r
-  const offset = circ - (pct / 100) * circ
-  return (
-    <div style={{ position: 'relative', width: size, height: size }}>
-      <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth={stroke} />
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={r}
-          fill="none"
-          stroke="#FCD34D"
-          strokeWidth={stroke}
-          strokeLinecap="round"
-          strokeDasharray={circ}
-          strokeDashoffset={offset}
-          style={{ transition: 'stroke-dashoffset 0.6s ease' }}
-        />
-      </svg>
-      <div
-        style={{
-          position: 'absolute',
-          inset: 0,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, fontSize: 32, color: '#fff', lineHeight: 1 }}>
-          {pct}%
-        </div>
-      </div>
+    <div style={{ fontSize: 12.5, color, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+      {children}
     </div>
   )
 }

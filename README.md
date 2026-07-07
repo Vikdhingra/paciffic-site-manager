@@ -11,20 +11,22 @@ proper mobile layout. Same Supabase backend and data as before.
 - **Real build pipeline** — every git push auto-deploys via Netlify.
 - **Organised code** — small files instead of one 2,900-line monster.
 
-## ⚠️ REQUIRED for User Management (v3.3.0+)
+## ⚠️ REQUIRED Netlify Environment Variables
 
-Adding/inviting/deleting users runs through a secure Netlify function that needs
-your Supabase **service role** key. This key is secret — it lives ONLY in Netlify,
-never in the code or browser.
+Set these in Netlify → **Site configuration → Environment variables**:
 
-1. In Supabase → **Settings → API**, copy the **service_role** secret (NOT the anon key)
-2. In Netlify → your site → **Site configuration → Environment variables**, add:
-   - `SUPABASE_URL` = `https://uwlkthiqarhdupvxypnq.supabase.co`
-   - `SUPABASE_SERVICE_ROLE_KEY` = (the service_role secret you copied)
-3. Redeploy (Netlify → Deploys → Trigger deploy)
+**For the app to connect to Supabase (required):**
+- `VITE_SUPABASE_URL` = `https://uwlkthiqarhdupvxypnq.supabase.co`
+- `VITE_SUPABASE_ANON_KEY` = (your anon/public key from Supabase → Settings → API)
 
-Without these two variables, the “Add User / Reset / Delete” actions return
-“Server not configured”. Everything else works fine without them.
+**For user management — invite/reset/delete (required for the Users page):**
+- `SUPABASE_URL` = `https://uwlkthiqarhdupvxypnq.supabase.co`
+- `SUPABASE_SERVICE_ROLE_KEY` = (the **service_role** secret from Supabase → Settings → API)
+
+The service_role key is secret — it lives ONLY in Netlify, never in the code.
+The VITE_ ones are public (safe to expose in a frontend build).
+
+After adding them, trigger a redeploy.
 
 ---
 

@@ -1,151 +1,128 @@
 import { useState } from 'react'
-import { C } from '../lib/constants'
 import { APP_VERSION } from '../lib/supabase'
 import { signOut } from '../lib/db'
 import { LOGO } from '../logo'
+import Icon from '../components/icons'
+import NewProjectModal from '../components/NewProjectModal'
 import AdminDashboard from './admin/AdminDashboard'
 import ProjectsList from './admin/ProjectsList'
 import ProjectDetail from './admin/ProjectDetail'
 import UsersPage from './admin/UsersPage'
-import { Btn } from '../components/ui'
 
 const NAV = [
-  { id: 'dashboard', label: 'DASHBOARD', icon: '📊' },
-  { id: 'projects', label: 'PROJECTS', icon: '📁' },
-  { id: 'users', label: 'USERS', icon: '⚙️' },
+  { id: 'dashboard', label: 'Dashboard', icon: 'dashboard' },
+  { id: 'projects', label: 'Projects', icon: 'projects' },
+  { id: 'users', label: 'Users', icon: 'users' },
 ]
 
 export default function AdminApp(props) {
-  const { profile, projects, onSwitchView } = props
+  const { profile, save, onSwitchView } = props
   const [section, setSection] = useState('dashboard')
   const [openProject, setOpenProject] = useState(null)
+  const [creating, setCreating] = useState(false)
 
   const go = (id) => {
     setSection(id)
     setOpenProject(null)
   }
 
-  const NavButton = ({ n, mobile }) => {
-    const active = section === n.id && !openProject
-    return (
-      <button
-        onClick={() => go(n.id)}
-        style={{
-          flex: mobile ? 1 : 'none',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: 4,
-          padding: mobile ? '8px 4px' : '16px 4px',
-          border: 'none',
-          background: active && !mobile ? '#152C54' : 'transparent',
-          borderLeft: !mobile ? '3px solid ' + (active ? C.amber : 'transparent') : 'none',
-          cursor: 'pointer',
-          color: active ? C.amber : '#64748B',
-          fontFamily: "'Barlow Condensed', sans-serif",
-          fontWeight: 700,
-          fontSize: 9,
-          letterSpacing: 0.5,
-        }}
-      >
-        <span style={{ fontSize: mobile ? 20 : 24 }}>{n.icon}</span>
-        <span>{n.label}</span>
-      </button>
-    )
-  }
+  const openNew = () => setCreating(true)
 
   return (
     <div className="app-shell">
       {/* Sidebar (desktop) */}
-      <div className="sidebar">
+      <nav className="sidebar">
+        <div className="side-logo">
+          <img src={LOGO} alt="Paciffic Homes" style={{ height: 34 }} />
+        </div>
         {NAV.map((n) => (
-          <NavButton key={n.id} n={n} />
+          <button
+            key={n.id}
+            className={['side-btn', section === n.id && !openProject ? 'on' : ''].join(' ')}
+            onClick={() => go(n.id)}
+          >
+            <Icon name={n.icon} size={22} />
+            <span>{n.label}</span>
+          </button>
         ))}
-      </div>
+        <div className="side-spacer" />
+        <button className="side-btn" onClick={signOut} title="Sign out">
+          <Icon name="logout" size={21} />
+          <span>Sign out</span>
+        </button>
+      </nav>
 
       <div className="content">
         {/* Top bar */}
-        <div
-          className="topbar"
-          style={{
-            background: C.navy,
-            padding: '14px 22px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 14,
-            flexWrap: 'wrap',
-            borderBottom: '3px solid ' + C.amber,
-          }}
-        >
-          <img src={LOGO} alt="Paciffic Homes" style={{ height: 38 }} />
-          <div style={{ flex: 1, minWidth: 120 }}>
-            <div
-              style={{
-                fontFamily: "'JetBrains Mono', monospace",
-                fontSize: 9,
-                color: C.amber,
-                letterSpacing: 1,
-              }}
-            >
-              ADMIN PORTAL
-            </div>
-            <div
-              style={{
-                fontFamily: "'Barlow Condensed', sans-serif",
-                fontWeight: 700,
-                fontSize: 16,
-                color: '#fff',
-              }}
-            >
-              {profile.full_name || profile.email}
-            </div>
+        <header className="topbar">
+          <img src={LOGO} alt="" className="only-mobile" style={{ height: 30 }} />
+          <div className="topbar-title" style={{ flex: 1, minWidth: 0 }}>
+            <div className="b">Paciffic Homes</div>
+            <div className="a">Site Manager</div>
           </div>
+          <button className="btn btn-primary btn-sm hide-mobile" onClick={openNew}>
+            <Icon name="plus" size={15} /> New project
+          </button>
           {onSwitchView && (
-            <Btn variant="outline" onClick={onSwitchView} style={{ color: C.blue, borderColor: C.blue + '60' }}>
-              👷 SUPERVISOR VIEW
-            </Btn>
+            <button className="btn btn-onnavy btn-sm" onClick={onSwitchView} title="Switch to supervisor view">
+              <Icon name="hardhat" size={15} /> <span className="hide-mobile">Supervisor</span>
+            </button>
           )}
-          <div
-            style={{
-              fontFamily: "'JetBrains Mono', monospace",
-              fontSize: 9,
-              color: '#94A3B8',
-              background: '#1E3A5F',
-              borderRadius: 4,
-              padding: '3px 8px',
-            }}
-          >
-            {APP_VERSION}
-          </div>
-          <Btn variant="outline" onClick={signOut} style={{ color: '#fff', borderColor: '#ffffff30' }}>
-            Sign out
-          </Btn>
-        </div>
+          <span className="ver-chip hide-mobile">{APP_VERSION}</span>
+          <button className="btn btn-onnavy btn-sm only-mobile" onClick={signOut} title="Sign out" style={{ padding: '7px 9px' }}>
+            <Icon name="logout" size={16} />
+          </button>
+        </header>
 
         {/* Main content */}
-        <div className="content-inner" style={{ padding: '22px 26px' }}>
+        <main className="content-inner">
           {openProject ? (
-            <ProjectDetail
-              {...props}
-              project={openProject}
-              onBack={() => setOpenProject(null)}
-            />
+            <ProjectDetail {...props} project={openProject} onBack={() => setOpenProject(null)} />
           ) : section === 'dashboard' ? (
-            <AdminDashboard {...props} onOpenProject={setOpenProject} onGoProjects={() => go('projects')} />
+            <AdminDashboard
+              {...props}
+              onOpenProject={setOpenProject}
+              onGoProjects={() => go('projects')}
+              onNewProject={openNew}
+            />
           ) : section === 'projects' ? (
-            <ProjectsList {...props} onOpenProject={setOpenProject} />
+            <ProjectsList {...props} onOpenProject={setOpenProject} onNewProject={openNew} />
           ) : section === 'users' ? (
             <UsersPage {...props} />
           ) : null}
-        </div>
+        </main>
       </div>
 
-      {/* Mobile bottom nav */}
-      <div className="mobile-nav">
-        {NAV.map((n) => (
-          <NavButton key={n.id} n={n} mobile />
+      {/* Mobile bottom nav with centre FAB */}
+      <nav className="mobile-nav">
+        {NAV.slice(0, 2).map((n) => (
+          <button key={n.id} className={['mnav-btn', section === n.id && !openProject ? 'on' : ''].join(' ')} onClick={() => go(n.id)}>
+            <Icon name={n.icon} size={21} />
+            <span>{n.label}</span>
+          </button>
         ))}
-      </div>
+        <button className="fab" onClick={openNew} aria-label="New project">
+          <Icon name="plus" size={24} stroke={2.4} />
+        </button>
+        <button className={['mnav-btn', section === 'users' && !openProject ? 'on' : ''].join(' ')} onClick={() => go('users')}>
+          <Icon name="users" size={21} />
+          <span>Users</span>
+        </button>
+        <button className="mnav-btn" onClick={onSwitchView || (() => {})} style={{ opacity: onSwitchView ? 1 : 0.35 }}>
+          <Icon name="hardhat" size={21} />
+          <span>Site view</span>
+        </button>
+      </nav>
+
+      {creating && (
+        <NewProjectModal
+          onClose={() => setCreating(false)}
+          onCreate={async (p) => {
+            await save(p)
+            setSection('projects')
+          }}
+        />
+      )}
     </div>
   )
 }

@@ -1,125 +1,96 @@
 import { useState } from 'react'
-import { C, isAssigned } from '../lib/constants'
+import { isAssigned } from '../lib/constants'
 import { APP_VERSION } from '../lib/supabase'
 import { signOut } from '../lib/db'
 import { LOGO } from '../logo'
 import { computeStats } from '../lib/derive'
-import { Card, Btn } from '../components/ui'
+import { StageRail, projectPct, projectIsDone, taskCounts, EmptyState } from '../components/ui'
+import Icon from '../components/icons'
 import ProjectDetail from './admin/ProjectDetail'
 
 export default function SupervisorApp(props) {
-  const { user, profile, projects, save, onSwitchView } = props
+  const { user, profile, projects, onSwitchView } = props
   const [openProject, setOpenProject] = useState(null)
 
-  // Supervisors only see projects they are assigned to
   const myProjects = projects.filter((p) => isAssigned(p, user.id))
   const stats = computeStats(myProjects)
 
   return (
-    <div style={{ minHeight: '100vh', background: C.bg }}>
+    <div style={{ minHeight: '100vh', background: 'var(--paper)' }}>
       {/* Header */}
-      <div style={{ background: C.navy, padding: '16px 20px', borderBottom: '3px solid ' + C.amber }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <img src={LOGO} alt="Paciffic Homes" style={{ height: 36 }} />
+      <div style={{ background: 'var(--navy)', borderBottom: '3px solid var(--gold)', padding: '14px 18px 58px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, maxWidth: 860, margin: '0 auto' }}>
+          <img src={LOGO} alt="Paciffic Homes" style={{ height: 34 }} />
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 9, color: C.amber, letterSpacing: 1 }}>
-              SUPERVISOR PORTAL
+            <div style={{ fontFamily: 'var(--disp)', fontWeight: 600, fontSize: 11.5, letterSpacing: '0.12em', color: 'var(--gold)', textTransform: 'uppercase' }}>
+              Supervisor portal
             </div>
-            <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: 15, color: '#fff' }}>
+            <div style={{ fontFamily: 'var(--disp)', fontWeight: 700, fontSize: 16, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {profile.full_name || profile.email}
             </div>
           </div>
-          <div
-            style={{
-              fontFamily: "'JetBrains Mono', monospace",
-              fontSize: 9,
-              color: '#475569',
-              background: '#1E3A5F',
-              borderRadius: 4,
-              padding: '3px 6px',
-            }}
-          >
-            {APP_VERSION}
-          </div>
+          <span className="ver-chip hide-mobile">{APP_VERSION}</span>
           {onSwitchView && (
-            <Btn variant="outline" onClick={onSwitchView} style={{ color: C.amber, borderColor: C.amber + '60' }}>
-              ADMIN
-            </Btn>
+            <button className="btn btn-onnavy btn-sm" onClick={onSwitchView}>
+              <Icon name="swap" size={15} /> Admin
+            </button>
           )}
-          <Btn variant="outline" onClick={signOut} style={{ color: '#fff', borderColor: '#ffffff30' }}>
-            SIGN OUT
-          </Btn>
-        </div>
-
-        {/* Stats */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 1, marginTop: 16 }}>
-          {[
-            { label: 'MY PROJECTS', val: myProjects.length, color: '#93C5FD' },
-            { label: 'ACTIVE', val: stats.active, color: C.amber },
-            { label: 'COMPLETED', val: stats.completed, color: '#6EE7B7' },
-          ].map((s) => (
-            <div key={s.label} style={{ textAlign: 'center', padding: '10px' }}>
-              <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, fontSize: 32, color: s.color }}>
-                {s.val}
-              </div>
-              <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 8, color: '#64748B', letterSpacing: 1 }}>
-                {s.label}
-              </div>
-            </div>
-          ))}
+          <button className="btn btn-onnavy btn-sm" onClick={signOut} aria-label="Sign out" style={{ padding: '7px 10px' }}>
+            <Icon name="logout" size={16} />
+          </button>
         </div>
       </div>
 
-      <div style={{ padding: '16px 14px' }}>
+      <div style={{ maxWidth: 860, margin: '0 auto', padding: '0 14px 40px' }}>
+        {/* Stat cards overlapping the header */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10, marginTop: -42, marginBottom: 20 }}>
+          {[
+            { label: 'My projects', val: myProjects.length, icon: 'projects' },
+            { label: 'Active', val: stats.active, icon: 'clock' },
+            { label: 'Completed', val: stats.completed, icon: 'check' },
+          ].map((s) => (
+            <div key={s.label} className="card" style={{ padding: '13px 14px', textAlign: 'center' }}>
+              <div className="num" style={{ fontSize: 26, lineHeight: 1 }}>{s.val}</div>
+              <div className="eyebrow" style={{ marginTop: 4, fontSize: 10.5 }}>{s.label}</div>
+            </div>
+          ))}
+        </div>
+
         {openProject ? (
           <ProjectDetail {...props} project={openProject} onBack={() => setOpenProject(null)} />
         ) : myProjects.length === 0 ? (
-          <Card style={{ textAlign: 'center', padding: 50, color: C.t3 }}>
-            <div style={{ fontSize: 40, marginBottom: 12 }}>🏗️</div>
-            <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, fontSize: 18, color: C.t2 }}>
-              NO PROJECTS ASSIGNED
-            </div>
-            <div style={{ fontSize: 13, marginTop: 6 }}>Your admin will assign projects to you.</div>
-          </Card>
+          <EmptyState icon="hardhat" title="No projects assigned">
+            Your admin will assign projects to you — they'll show up here.
+          </EmptyState>
         ) : (
           myProjects.map((p) => {
-            const sc = p.stages?.length || 0
-            const pct = sc <= 1 ? 0 : Math.round((p.currentStage / (sc - 1)) * 100)
-            const pc = p.color || C.amber
+            const pct = projectPct(p)
+            const done = projectIsDone(p)
+            const t = taskCounts(p)
             return (
-              <Card
+              <button
                 key={p.id}
                 onClick={() => setOpenProject(p)}
-                style={{ marginBottom: 12, borderLeft: '5px solid ' + pc, cursor: 'pointer' }}
+                className="card card-tap"
+                style={{ width: '100%', textAlign: 'left', padding: '16px 18px', marginBottom: 11, border: '1px solid var(--line)' }}
               >
-                <div
-                  onClick={() => setOpenProject(p)}
-                  style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
-                >
-                  <div>
-                    <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, fontSize: 20, color: C.t1 }}>
-                      {p.name}
-                    </div>
-                    <div style={{ fontSize: 12, color: C.t2 }}>📍 {p.location || '—'}</div>
-                    <div style={{ fontSize: 12, color: C.t2, marginTop: 4 }}>
-                      {p.stages?.[p.currentStage]?.name}
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 4 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontFamily: 'var(--disp)', fontWeight: 700, fontSize: 19 }}>{p.name}</div>
+                    <div style={{ fontSize: 12.5, color: 'var(--ink-3)', marginTop: 2, display: 'flex', alignItems: 'center', gap: 5 }}>
+                      <Icon name="pin" size={13} /> {p.location || 'No address'}
                     </div>
                   </div>
-                  <div
-                    style={{
-                      background: pc,
-                      color: '#fff',
-                      borderRadius: 10,
-                      padding: '8px 10px',
-                      fontFamily: "'Barlow Condensed', sans-serif",
-                      fontWeight: 800,
-                      fontSize: 18,
-                    }}
-                  >
-                    {pct}%
-                  </div>
+                  <div className="num" style={{ fontSize: 23, color: done ? 'var(--green)' : 'var(--navy)' }}>{pct}%</div>
                 </div>
-              </Card>
+                <StageRail project={p} style={{ margin: '11px 0 8px' }} />
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontFamily: 'var(--disp)', fontWeight: 600, fontSize: 14, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {p.stages?.[p.currentStage]?.name}
+                  </span>
+                  <span style={{ fontSize: 12, color: 'var(--ink-3)' }}>{t.done}/{t.total} tasks</span>
+                </div>
+              </button>
             )
           })
         )}

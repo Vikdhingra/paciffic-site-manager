@@ -1,7 +1,6 @@
 import { useState } from 'react'
-import { C } from '../lib/constants'
 import { signIn, signUp, sendPasswordReset } from '../lib/db'
-import { Btn, Input, Spinner } from '../components/ui'
+import { Btn, Input } from '../components/ui'
 import { LOGO } from '../logo'
 
 export default function AuthScreen() {
@@ -24,7 +23,7 @@ export default function AuthScreen() {
       } else if (mode === 'signup') {
         if (!name.trim()) throw new Error('Enter your name')
         await signUp(email.trim(), password, name.trim())
-        setInfo('Account created! Check your email to confirm, then sign in.')
+        setInfo('Account created. Check your email to confirm, then sign in.')
         setMode('login')
       } else if (mode === 'forgot') {
         await sendPasswordReset(email.trim())
@@ -38,118 +37,46 @@ export default function AuthScreen() {
     }
   }
 
-  return (
-    <div
-      style={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: C.navy,
-        padding: 20,
-      }}
-    >
-      <div
-        style={{
-          background: '#fff',
-          borderRadius: 18,
-          padding: '32px 28px',
-          width: '100%',
-          maxWidth: 380,
-          boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
-        }}
-      >
-        <img src={LOGO} alt="Paciffic Homes" style={{ height: 48, marginBottom: 18 }} />
-        <div
-          style={{
-            fontFamily: "'JetBrains Mono', monospace",
-            fontSize: 10,
-            color: C.amber,
-            letterSpacing: 2,
-            marginBottom: 4,
-          }}
-        >
-          SITE MANAGER
-        </div>
-        <div
-          style={{
-            fontFamily: "'Barlow Condensed', sans-serif",
-            fontWeight: 800,
-            fontSize: 26,
-            color: C.t1,
-            marginBottom: 22,
-          }}
-        >
-          {mode === 'login' ? 'Sign In' : mode === 'signup' ? 'Create Account' : 'Reset Password'}
-        </div>
+  const titles = { login: 'Sign in', signup: 'Create account', forgot: 'Reset password' }
 
-        {mode === 'signup' && (
-          <Input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Full name"
-            style={{ marginBottom: 12 }}
-          />
-        )}
-        <Input
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="Email"
-          type="email"
-          style={{ marginBottom: 12 }}
-        />
-        {mode !== 'forgot' && (
-          <Input
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Password"
-            type="password"
-            style={{ marginBottom: 12 }}
-          />
-        )}
+  return (
+    <div className="auth-wrap">
+      <div className="card rise" style={{ width: '100%', maxWidth: 400, padding: '30px 28px', boxShadow: 'var(--shadow-pop)' }}>
+        <img src={LOGO} alt="Paciffic Homes" style={{ height: 46, marginBottom: 16 }} />
+        <div className="eyebrow" style={{ color: 'var(--gold-strong)', marginBottom: 3 }}>Site Manager</div>
+        <div className="h-page" style={{ fontSize: 24, marginBottom: 20 }}>{titles[mode]}</div>
 
         {error && (
-          <div style={{ color: C.red, fontSize: 13, marginBottom: 12 }}>{error}</div>
+          <div style={{ background: 'var(--red-soft)', border: '1px solid #f0cdc5', borderRadius: 9, padding: '10px 13px', color: 'var(--red)', fontSize: 13.5, marginBottom: 14 }}>
+            {error}
+          </div>
         )}
         {info && (
-          <div style={{ color: C.green, fontSize: 13, marginBottom: 12 }}>{info}</div>
+          <div style={{ background: 'var(--green-soft)', border: '1px solid #bfe4cc', borderRadius: 9, padding: '10px 13px', color: 'var(--green)', fontSize: 13.5, marginBottom: 14 }}>
+            {info}
+          </div>
         )}
 
-        <Btn
-          onClick={submit}
-          disabled={busy}
-          style={{ width: '100%', padding: '12px', fontSize: 15, marginBottom: 14 }}
-        >
-          {busy ? (
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-              <Spinner size={16} /> Please wait…
-            </span>
-          ) : mode === 'login' ? (
-            'SIGN IN'
-          ) : mode === 'signup' ? (
-            'CREATE ACCOUNT'
-          ) : (
-            'SEND RESET LINK'
-          )}
+        {mode === 'signup' && (
+          <Input label="Full name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" style={{ marginBottom: 14 }} />
+        )}
+        <Input label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@paciffichomes.com.au" style={{ marginBottom: 14 }} />
+        {mode !== 'forgot' && (
+          <Input label="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" style={{ marginBottom: 18 }} />
+        )}
+
+        <Btn onClick={submit} disabled={busy} size="lg" block style={{ marginBottom: 16 }}>
+          {busy ? 'Please wait…' : titles[mode]}
         </Btn>
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13.5 }}>
           {mode === 'login' ? (
             <>
-              <button
-                onClick={() => setMode('forgot')}
-                style={linkStyle}
-              >
-                Forgot password?
-              </button>
-              <button onClick={() => setMode('signup')} style={linkStyle}>
-                Create account
-              </button>
+              <LinkBtn onClick={() => { setMode('signup'); setError(''); setInfo('') }}>Create account</LinkBtn>
+              <LinkBtn onClick={() => { setMode('forgot'); setError(''); setInfo('') }}>Forgot password?</LinkBtn>
             </>
           ) : (
-            <button onClick={() => setMode('login')} style={linkStyle}>
-              ← Back to sign in
-            </button>
+            <LinkBtn onClick={() => { setMode('login'); setError(''); setInfo('') }}>← Back to sign in</LinkBtn>
           )}
         </div>
       </div>
@@ -157,12 +84,13 @@ export default function AuthScreen() {
   )
 }
 
-const linkStyle = {
-  background: 'transparent',
-  border: 'none',
-  color: C.blue,
-  cursor: 'pointer',
-  fontFamily: "'Barlow', sans-serif",
-  fontSize: 13,
-  padding: 0,
+function LinkBtn({ onClick, children }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{ background: 'transparent', border: 'none', color: 'var(--blue)', cursor: 'pointer', fontSize: 13.5, padding: 0, fontFamily: 'var(--body)' }}
+    >
+      {children}
+    </button>
+  )
 }
