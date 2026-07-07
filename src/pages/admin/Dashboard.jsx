@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { fetchOpenRequests, updateRequest, setTaskDone, fetchAllProfiles } from '../../lib/api'
+import { fetchOpenRequests, updateRequest, setTaskDone, fetchAllProfiles, fetchNewPhotos, archivePhoto } from '../../lib/api'
 import { projectPct, isComplete, taskCounts, activeStage, fmtShort, typeLabel } from '../../lib/helpers'
 import { downloadRequestEvent } from '../../lib/calendar'
 import { Card, Tag, PriorityTag, Empty, Banner, Spinner, Segments, IconChip } from '../../components/ui'
@@ -14,10 +14,13 @@ const greeting = () => {
 export default function Dashboard({ projects, loaded, error, refresh, profile, onOpenProject, onGoProjects, onNew }) {
   const [requests, setRequests] = useState([])
   const [people, setPeople] = useState({})
+  const [photos, setPhotos] = useState([])
+  const [viewer, setViewer] = useState(null)
   const [busy, setBusy] = useState(null)
 
   useEffect(() => {
     fetchOpenRequests().then(setRequests).catch(() => {})
+    fetchNewPhotos().then(setPhotos).catch(() => {})
     fetchAllProfiles()
       .then((all) => {
         const m = {}
@@ -131,7 +134,7 @@ export default function Dashboard({ projects, loaded, error, refresh, profile, o
                   className="btn btn-green"
                   onClick={() => {
                     const note = prompt('Note back to site? (optional)') || r.admin_note || ''
-                    patchRequest(r.id, { status: 'done', done_at: new Date().toISOString(), done_by_name: 'Office', admin_note: note })
+                    patchRequest(r.id, { status: 'done', done_at: new Date().toISOString(), done_by_name: 'Office', admin_note: note, site_ack: false })
                   }}
                 >
                   <Icon name="check" size={14} /> Done
@@ -167,6 +170,66 @@ export default function Dashboard({ projects, loaded, error, refresh, profile, o
               </button>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* New site photos */}
+      <SectionHead
+        icon="note"
+        tint="accent"
+        title="New site photos"
+        count={photos.length}
+        tone="accent"
+      />
+      {photos.length === 0 ? (
+        <AllClear>No new photos — everything from site has been reviewed.</AllClear>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: 8, marginBottom: 26 }}>
+          {photos.map((ph) => (
+            <div key={ph.id} style={{ position: 'relative', borderRadius: 10, overflow: 'hidden', border: '1px solid var(--line)', background: '#000', aspectRatio: '1' }}>
+              <img
+                src={ph.data_url}
+                alt="Site"
+                loading="lazy"
+                onClick={() => setViewer(ph)}
+                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', cursor: 'pointer' }}
+              />
+              <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, background: 'linear-gradient(transparent, rgba(0,0,0,0.72))', padding: '18px 8px 6px', pointerEvents: 'none' }}>
+                <div style={{ color: '#fff', fontSize: 11, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {byId[ph.project_id]?.name || 'Project'}
+                </div>
+                <div style={{ color: 'rgba(255,255,255,0.75)', fontSize: 10 }}>{fmtShort(ph.taken_at)}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {viewer && (
+        <div className="veil" style={{ alignItems: 'center', padding: 14 }} onClick={() => setViewer(null)}>
+          <div onClick={(e) => e.stopPropagation()} style={{ maxWidth: 700, width: '100%' }}>
+            <img src={viewer.data_url} alt="Site" style={{ width: '100%', borderRadius: 12, display: 'block' }} />
+            <div className="card" style={{ marginTop: 8, padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <div style={{ flex: 1, minWidth: 150 }}>
+                <div style={{ fontWeight: 500, fontSize: 13.5 }}>{byId[viewer.project_id]?.name || 'Project'}</div>
+                <div className="sub">{fmtShort(viewer.taken_at)}</div>
+              </div>
+              <button
+                className="btn btn-green"
+                onClick={async () => {
+                  await archivePhoto(viewer.id).catch((e) => alert(e.message))
+                  setPhotos((ps) => ps.filter((x) => x.id !== viewer.id))
+                  setViewer(null)
+                }}
+              >
+                <Icon name="check" size={14} /> Archive to project
+              </button>
+              <button className="btn btn-outline" onClick={() => { onOpenProject(viewer.project_id, 'photos'); setViewer(null) }}>
+                Open project
+              </button>
+              <button className="btn btn-ghost" onClick={() => setViewer(null)}>Close</button>
+            </div>
+          </div>
         </div>
       )}
 

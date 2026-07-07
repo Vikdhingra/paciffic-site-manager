@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
-import { fetchTodayDiaryStatus, fetchOpenRequestCounts } from '../../lib/api'
-import { projectPct, isComplete, activeStage, openTasksInActiveStage } from '../../lib/helpers'
-import { Segments, Tag, Empty, Banner, Spinner } from '../../components/ui'
+import { fetchTodayDiaryStatus, fetchOpenRequestCounts, fetchAnsweredRequests, ackRequest } from '../../lib/api'
+import { projectPct, isComplete, activeStage, openTasksInActiveStage, typeLabel } from '../../lib/helpers'
+import { Segments, Tag, Empty, Banner, Spinner, IconChip, Card } from '../../components/ui'
 import Icon from '../../components/icons'
 
 // Supervisor home: today's diary status, jobs planned, quick actions.
@@ -9,6 +9,7 @@ import Icon from '../../components/icons'
 export default function Today({ projects, loaded, error, onOpenProject }) {
   const [diaryDone, setDiaryDone] = useState({})
   const [reqCounts, setReqCounts] = useState({})
+  const [answered, setAnswered] = useState([])
 
   const ids = projects.map((p) => p.id).join(',')
   useEffect(() => {
@@ -16,6 +17,7 @@ export default function Today({ projects, loaded, error, onOpenProject }) {
     const pids = projects.map((p) => p.id)
     fetchTodayDiaryStatus(pids).then(setDiaryDone).catch(() => {})
     fetchOpenRequestCounts(pids).then(setReqCounts).catch(() => {})
+    fetchAnsweredRequests(pids).then(setAnswered).catch(() => {})
   }, [ids])
 
   const active = projects.filter((p) => !isComplete(p))
@@ -42,6 +44,44 @@ export default function Today({ projects, loaded, error, onOpenProject }) {
         </div>
       )}
       {error && <Banner tone="red">{error}</Banner>}
+
+      {/* Answered by the office */}
+      {answered.length > 0 && (
+        <Card pad={0} style={{ marginBottom: 16, border: '1px solid #c4e8d6', overflow: 'hidden' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '11px 14px', background: 'var(--green-soft)' }}>
+            <IconChip icon="check" tint="green" sm />
+            <div style={{ flex: 1 }}>
+              <div style={{ fontWeight: 600, fontSize: 13.5, color: 'var(--green)' }}>Sorted by the office</div>
+              <div className="sub" style={{ fontSize: 11.5 }}>{answered.length} request{answered.length === 1 ? '' : 's'} completed since you last checked</div>
+            </div>
+          </div>
+          {answered.map((r) => {
+            const proj = projects.find((p) => p.id === r.project_id)
+            return (
+              <div key={r.id} className="row" style={{ alignItems: 'flex-start' }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 500, fontSize: 13.5 }}>{r.title}</div>
+                  <div className="sub">{typeLabel(r.type)}{proj ? ' · ' + proj.name : ''}</div>
+                  {r.admin_note && (
+                    <div style={{ marginTop: 5, background: 'var(--accent-soft)', borderRadius: 8, padding: '6px 9px', fontSize: 12.5, color: 'var(--accent-strong)' }}>
+                      Office: {r.admin_note}
+                    </div>
+                  )}
+                </div>
+                <button
+                  className="btn btn-green"
+                  onClick={async () => {
+                    await ackRequest(r.id).catch(() => {})
+                    setAnswered((rs) => rs.filter((x) => x.id !== r.id))
+                  }}
+                >
+                  <Icon name="check" size={14} /> Got it
+                </button>
+              </div>
+            )
+          })}
+        </Card>
+      )}
 
       {loaded && projects.length === 0 ? (
         <Empty icon="hardhat" title="No projects assigned">

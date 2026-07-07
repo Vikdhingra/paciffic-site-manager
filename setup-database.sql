@@ -59,6 +59,7 @@ create table if not exists pm_photos (
   stage_id uuid references pm_stages(id) on delete set null,
   data_url text not null,
   caption text default '',
+  archived boolean not null default false,
   taken_at timestamptz default now(),
   created_by uuid
 );
@@ -99,6 +100,7 @@ create table if not exists pm_requests (
   admin_note text default '',
   done_by_name text default '',
   done_at timestamptz,
+  site_ack boolean not null default false,
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );

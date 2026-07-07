@@ -330,3 +330,37 @@ export async function updateRequest(id, patch) {
   if (error) throw error
   return data
 }
+
+// ═══ NOTIFY LOOP: answered requests awaiting site acknowledgement ═══
+export async function fetchAnsweredRequests(projectIds) {
+  if (!projectIds.length) return []
+  const { data, error } = await supabase
+    .from('pm_requests')
+    .select('*')
+    .eq('status', 'done')
+    .eq('site_ack', false)
+    .in('project_id', projectIds)
+    .order('done_at', { ascending: false })
+  if (error) throw error
+  return data || []
+}
+export async function ackRequest(id) {
+  const { error } = await supabase.from('pm_requests').update({ site_ack: true }).eq('id', id)
+  if (error) throw error
+}
+
+// ═══ GLOBAL PHOTO GALLERY (admin) ═══════════════════════════
+export async function fetchNewPhotos(limit = 24) {
+  const { data, error } = await supabase
+    .from('pm_photos')
+    .select('*')
+    .eq('archived', false)
+    .order('taken_at', { ascending: false })
+    .limit(limit)
+  if (error) throw error
+  return data || []
+}
+export async function archivePhoto(id) {
+  const { error } = await supabase.from('pm_photos').update({ archived: true }).eq('id', id)
+  if (error) throw error
+}

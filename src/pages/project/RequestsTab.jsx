@@ -108,7 +108,7 @@ function Req({ r, p, isAdmin, patch, muted }) {
             <>
               <button className="btn btn-green" onClick={() => {
                 const note = prompt('Note back to site? (optional)') || r.admin_note || ''
-                patch(r.id, { status: 'done', done_at: new Date().toISOString(), done_by_name: 'Office', admin_note: note })
+                patch(r.id, { status: 'done', done_at: new Date().toISOString(), done_by_name: 'Office', admin_note: note, site_ack: false })
               }}>
                 <Icon name="check" size={14} /> Done
               </button>
@@ -122,7 +122,7 @@ function Req({ r, p, isAdmin, patch, muted }) {
           </button>
           {!isAdmin && (
             <button className="btn btn-danger" style={{ marginLeft: 'auto' }} onClick={() => {
-              if (confirm('Cancel this request?')) patch(r.id, { status: 'done', done_by_name: r.created_by_name || 'Site', admin_note: 'Cancelled by site' })
+              if (confirm('Cancel this request?')) patch(r.id, { status: 'done', done_by_name: r.created_by_name || 'Site', admin_note: 'Cancelled by site', site_ack: true })
             }}>
               Cancel
             </button>
