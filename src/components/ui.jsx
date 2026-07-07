@@ -152,3 +152,41 @@ export function IconChip({ icon, tint = 'accent', sm }) {
     </span>
   )
 }
+
+// Mic button — dictate into a field via browser speech recognition
+import { useRef as _useRef, useState as _useState, useEffect as _useEffect } from 'react'
+import { speechSupported, createRecognizer } from '../lib/speech'
+
+export function MicBtn({ onText, title = 'Dictate' }) {
+  const [live, setLive] = _useState(false)
+  const recRef = _useRef(null)
+
+  _useEffect(() => () => { try { recRef.current?.stop() } catch {} }, [])
+
+  if (!speechSupported) return null
+
+  const toggle = () => {
+    if (live) {
+      try { recRef.current?.stop() } catch {}
+      return
+    }
+    recRef.current = createRecognizer({ onText, onState: setLive })
+    try { recRef.current?.start() } catch {}
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={toggle}
+      title={live ? 'Stop dictating' : title}
+      aria-label={live ? 'Stop dictating' : title}
+      className={live ? 'mic live' : 'mic'}
+    >
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="9" y="3" width="6" height="11" rx="3" />
+        <path d="M5 11a7 7 0 0 0 14 0" />
+        <path d="M12 18v3" />
+      </svg>
+    </button>
+  )
+}

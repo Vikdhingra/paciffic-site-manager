@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { fetchDiaryEntry, fetchDiaryEntries, saveDiaryEntry, setTaskDone } from '../../lib/api'
 import { dayKey, fmtDate, activeStage } from '../../lib/helpers'
-import { Spinner, Btn, Card, Tag, Tick, Banner, Field } from '../../components/ui'
+import { Spinner, Btn, Card, Tag, Tick, Banner, Field, MicBtn } from '../../components/ui'
 import Icon from '../../components/icons'
 
 const WEATHER = ['Fine', 'Cloudy', 'Rain', 'Wind', 'Heat']
@@ -209,9 +209,13 @@ export default function DiaryTab({ p, refresh, profile, user }) {
 }
 
 function Area({ label, ph, val, on, tall }) {
+  const append = (text) => on(((val || '').trim() ? (val.trim() + (/[.!?]$/.test(val.trim()) ? ' ' : '. ')) : '') + text)
   return (
     <Field label={label}>
-      <textarea className="textarea" style={{ minHeight: tall ? 84 : 56 }} placeholder={ph} value={val || ''} onChange={(e) => on(e.target.value)} />
+      <div style={{ display: 'flex', gap: 6, alignItems: 'flex-start' }}>
+        <textarea className="textarea" style={{ minHeight: tall ? 84 : 56, flex: 1 }} placeholder={ph} value={val || ''} onChange={(e) => on(e.target.value)} />
+        <MicBtn onText={append} title={'Dictate ' + label.toLowerCase()} />
+      </div>
     </Field>
   )
 }
@@ -234,14 +238,15 @@ function AddJob({ onAdd }) {
     setTitle('')
   }
   return (
-    <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+    <div style={{ display: 'flex', gap: 6, marginBottom: 10, alignItems: 'center' }}>
       <input
         className="input"
-        placeholder="Add a job — e.g. Plumber onsite for rough-in"
+        placeholder="Add a job — type or dictate"
         value={title}
         onChange={(e) => setTitle(e.target.value)}
         onKeyDown={(e) => e.key === 'Enter' && submit()}
       />
+      <MicBtn onText={(text) => onAdd(text)} title="Dictate jobs — each phrase becomes a job" />
       <Btn variant="outline" onClick={submit} disabled={!title.trim()}>Add</Btn>
     </div>
   )
