@@ -105,10 +105,10 @@ export default function Dashboard({ projects, loaded, error, refresh, profile, o
 
       {/* KPIs */}
       <div className="g-kpi" style={{ marginBottom: 26 }}>
-        <Kpi icon="projects" tint="accent" label="Active projects" val={active.length} onClick={onGoProjects} />
-        <Kpi icon="check" tint="green" label="Completed" val={done.length} onClick={onGoProjects} />
-        <Kpi icon="target" tint="amber" label="Tasks done" val={totals.done + ' / ' + totals.total} onClick={onGoProjects} />
-        <Kpi icon="flag" tint={requests.length ? 'red' : 'ink'} label="Open requests" val={requests.length} />
+        <Kpi tone="accent" label="Active projects" val={active.length} sub={projects.length + ' total'} onClick={onGoProjects} />
+        <Kpi tone="green" label="Completed" val={done.length} sub={done.length ? 'Nice work' : 'None handed over yet'} onClick={onGoProjects} />
+        <Kpi tone="amber" label="Tasks done" val={totals.done + ' / ' + totals.total} sub={(totals.total ? Math.round((totals.done / totals.total) * 100) : 0) + '% across all builds'} onClick={onGoProjects} />
+        <Kpi tone="red" label="Open requests" val={requests.length} sub={requests.length ? 'Site is waiting on you' : 'Site is all clear'} />
       </div>
 
       {/* Today on site — the morning plan */}
@@ -336,14 +336,12 @@ export function ProjectCard({ p, people, onOpen }) {
   )
 }
 
-function Kpi({ icon, tint, label, val, onClick }) {
+function Kpi({ tone, label, val, sub, onClick }) {
   return (
-    <div className="kpi" onClick={onClick}>
-      <IconChip icon={icon} tint={tint} />
-      <div>
-        <div className="kpi-num">{val}</div>
-        <div className="sub" style={{ marginTop: 1 }}>{label}</div>
-      </div>
+    <div className={'kpi k-' + tone} onClick={onClick}>
+      <div className="kpi-label">{label}</div>
+      <div className="kpi-num">{val}</div>
+      {sub && <div className="kpi-sub">{sub}</div>}
     </div>
   )
 }
