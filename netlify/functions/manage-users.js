@@ -48,7 +48,7 @@ export default async (req) => {
   if (!callerProfile || !ADMIN_ROLES.includes(callerProfile.role)) {
     return json({ error: 'Admin access required' }, 403)
   }
-  const isSuperAdmin = callerProfile.role === 'super_admin'
+  const isSuperAdmin = ['super_admin', 'superadmin'].includes(callerProfile.role)
 
   // ── Parse the action ────────────────────────────────────────
   let body
@@ -65,6 +65,8 @@ export default async (req) => {
       case 'invite': {
         const { email, fullName, role } = body
         if (!email) return json({ error: 'Email required' }, 400)
+        if (role === 'admin' && !isSuperAdmin)
+          return json({ error: 'Only a super admin can create admins' }, 403)
         const { data, error } = await admin.auth.admin.inviteUserByEmail(email, {
           data: { full_name: fullName || '', role: role || 'supervisor' },
         })
@@ -77,6 +79,8 @@ export default async (req) => {
       case 'createWithPassword': {
         const { email, fullName, role, password } = body
         if (!email || !password) return json({ error: 'Email and password required' }, 400)
+        if (role === 'admin' && !isSuperAdmin)
+          return json({ error: 'Only a super admin can create admins' }, 403)
         const { data, error } = await admin.auth.admin.createUser({
           email,
           password,
@@ -123,11 +127,17 @@ export default async (req) => {
           .select('role')
           .eq('id', userId)
           .single()
-        if (target?.role === 'super_admin' && !isSuperAdmin)
+        if (['super_admin', 'superadmin'].includes(target?.role) && !isSuperAdmin)
           return json({ error: 'Cannot delete a super admin' }, 403)
-        const { error } = await admin.auth.admin.deleteUser(userId)
-        if (error) throw error
+        // Remove references FIRST so the auth delete isn't blocked by
+        // foreign keys (profiles / project assignments pointing at the user).
+        await admin.from('pm_assignments').delete().eq('user_id', userId)
         await admin.from('profiles').delete().eq('id', userId)
+        const { error } = await admin.auth.admin.deleteUser(userId)
+        if (error) {
+          // auth delete failed — restore nothing, but surface the real reason
+          return json({ error: 'Auth delete failed: ' + error.message }, 500)
+        }
         return json({ ok: true })
       }
 

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { fetchAllProfiles } from '../../lib/api'
-import { isAdminRole } from '../../lib/helpers'
+import { isAdminRole, isSuperRole } from '../../lib/helpers'
 import { inviteUser, createUserWithPassword, adminSetRole, adminResetPassword, adminDeleteUser } from '../../lib/userAdmin'
 import { Spinner, Btn, Card, Tag, Input, Field, Banner, Modal } from '../../components/ui'
 import { Avatar } from '../Shell'
@@ -13,7 +13,7 @@ export default function Users({ profile }) {
   const [busyId, setBusyId] = useState(null)
   const [toast, setToast] = useState('')
 
-  const isSuperAdmin = profile.role === 'super_admin'
+  const isSuperAdmin = isSuperRole(profile.role)
   const canManage = isAdminRole(profile.role)
 
   const load = () => {
@@ -70,7 +70,7 @@ export default function Users({ profile }) {
         {users.map((u) => {
           const me = u.id === profile.id
           const busy = busyId === u.id
-          const locked = u.role === 'super_admin'
+          const locked = isSuperRole(u.role)
           return (
             <div key={u.id} className="row" style={{ flexWrap: 'wrap' }}>
               <Avatar name={u.full_name || u.email} size={32} />

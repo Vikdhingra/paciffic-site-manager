@@ -1,5 +1,6 @@
 export const ADMIN_ROLES = ['admin', 'super_admin', 'superadmin']
 export const isAdminRole = (r) => ADMIN_ROLES.includes(r)
+export const isSuperRole = (r) => r === 'super_admin' || r === 'superadmin'
 
 // Stage template — Paciffic Homes standard build checklist
 export const STAGE_TEMPLATE = [
