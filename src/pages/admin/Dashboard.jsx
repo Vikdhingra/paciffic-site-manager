@@ -128,7 +128,7 @@ export default function Dashboard({ projects, loaded, error, refresh, profile, o
           {active.map((p) => {
             const d = diaries[p.id]
             const s = activeStage(p)
-            const jobs = d?.jobs?.length ? d.jobs : openTasksInActiveStage(p).map((t) => ({ taskId: t.id, title: t.title, done: false }))
+            const jobs = d ? (d.jobs || []) : openTasksInActiveStage(p).map((t) => ({ taskId: t.id, title: t.title, done: false }))
             const doneN = jobs.filter((j) => j.done).length
             return (
               <Card key={p.id} pad={0} onClick={() => onOpenProject(p.id, 'diary')} style={{ overflow: 'hidden' }}>
@@ -145,10 +145,10 @@ export default function Dashboard({ projects, loaded, error, refresh, profile, o
                 </div>
                 <div style={{ borderTop: '1px solid var(--line)', padding: '9px 15px 12px', background: 'var(--surface-2)' }}>
                   <div className="overline" style={{ fontSize: 10.5, marginBottom: 5 }}>
-                    {d?.jobs?.length ? "Today's jobs · " + doneN + '/' + jobs.length + ' done' : jobs.length ? 'Planned (from open tasks)' : 'Nothing planned'}
+                    {d ? (jobs.length ? "Supervisor's plan · " + doneN + '/' + jobs.length + ' done' : 'Diary in — no jobs listed') : jobs.length ? 'Expected (from open tasks)' : 'Nothing planned'}
                   </div>
-                  {jobs.slice(0, 5).map((j) => (
-                    <div key={j.taskId} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '2.5px 0', fontSize: 13 }}>
+                  {jobs.slice(0, 5).map((j, i) => (
+                    <div key={j.taskId || j.id || i} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '2.5px 0', fontSize: 13 }}>
                       <Icon name={j.done ? 'check' : 'clock'} size={12} style={{ color: j.done ? 'var(--green)' : 'var(--amber)', flexShrink: 0 }} />
                       <span style={{ color: j.done ? 'var(--ink-3)' : 'var(--ink-2)', textDecoration: j.done ? 'line-through' : 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{j.title}</span>
                     </div>
