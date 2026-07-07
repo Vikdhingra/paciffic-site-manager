@@ -1,9 +1,9 @@
 import { useState, useMemo } from 'react'
 import {
-  completeStage, reopenStage, setActiveStage, addTask, setTaskDone, deleteTask, setAssignments,
+  completeStage, reopenStage, setActiveStage, addTask, setTaskDone, deleteTask, setAssignments, updateProject,
 } from '../lib/api'
 import { projectPct, isComplete, activeStage, fmtShort } from '../lib/helpers'
-import { Btn, Card, Segments, Tick, Tag, PriorityTag, Field, Input } from '../components/ui'
+import { Btn, Card, Segments, Tick, Tag, PriorityTag, Field, Input, Modal } from '../components/ui'
 import Icon from '../components/icons'
 import SupervisorPicker from '../components/SupervisorPicker'
 import DiaryTab from './project/DiaryTab'
@@ -15,6 +15,7 @@ export default function Project(props) {
   const { projects, projectId, initialTab, onBack, refresh, isAdmin } = props
   const [tab, setTab] = useState(initialTab || 'overview')
   const [busy, setBusy] = useState(false)
+  const [editing, setEditing] = useState(false)
 
   const p = projects.find((x) => x.id === projectId)
   if (!p) return null
@@ -55,7 +56,14 @@ export default function Project(props) {
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, marginBottom: 12, flexWrap: 'wrap' }}>
         <div style={{ flex: 1, minWidth: 220 }}>
-          <h1 className="h1" style={{ marginBottom: 3 }}>{p.name}</h1>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <h1 className="h1" style={{ marginBottom: 3 }}>{p.name}</h1>
+            {isAdmin && (
+              <button className="btn btn-ghost btn-icon" title="Edit project details" onClick={() => setEditing(true)}>
+                <Icon name="note" size={15} />
+              </button>
+            )}
+          </div>
           <div className="sub">
             {p.address || 'No address'}
             {p.client ? ' · ' + p.client : ''}
@@ -99,6 +107,18 @@ export default function Project(props) {
       {tab === 'requests' && <RequestsTab p={p} {...props} />}
       {tab === 'photos' && <PhotosTab p={p} {...props} />}
       {tab === 'files' && <FilesTab p={p} {...props} />}
+      {editing && (
+        <EditProjectModal
+          p={p}
+          onClose={() => setEditing(false)}
+          onSave={async (patch) => {
+            await updateProject(p.id, patch)
+            await refresh(p.id)
+            setEditing(false)
+          }}
+        />
+      )}
+
       {tab === 'team' && (
         <div style={{ maxWidth: 480 }}>
           <div className="h2" style={{ marginBottom: 4 }}>Assigned supervisors</div>
@@ -255,5 +275,38 @@ function AddTaskInline({ onAdd, onCancel }) {
         <Btn variant="ghost" onClick={onCancel}>Cancel</Btn>
       </div>
     </div>
+  )
+}
+
+
+function EditProjectModal({ p, onClose, onSave }) {
+  const [name, setName] = useState(p.name)
+  const [address, setAddress] = useState(p.address || '')
+  const [client, setClient] = useState(p.client || '')
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState('')
+
+  const submit = async () => {
+    if (!name.trim()) return setErr('Project needs a name')
+    setBusy(true); setErr('')
+    try {
+      await onSave({ name: name.trim(), address: address.trim(), client: client.trim() })
+    } catch (e) {
+      setErr(e.message || 'Could not save')
+      setBusy(false)
+    }
+  }
+
+  return (
+    <Modal title="Edit project" onClose={onClose}>
+      <Input label="Project name" value={name} onChange={(e) => setName(e.target.value)} autoFocus />
+      <Input label="Site address" value={address} onChange={(e) => setAddress(e.target.value)} />
+      <Input label="Client / builder" value={client} onChange={(e) => setClient(e.target.value)} />
+      {err && <div style={{ color: 'var(--red)', fontSize: 13, marginBottom: 10 }}>{err}</div>}
+      <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+        <Btn onClick={submit} disabled={busy} size="lg" style={{ flex: 1 }}>{busy ? 'Saving…' : 'Save changes'}</Btn>
+        <Btn variant="outline" size="lg" onClick={onClose}>Cancel</Btn>
+      </div>
+    </Modal>
   )
 }
