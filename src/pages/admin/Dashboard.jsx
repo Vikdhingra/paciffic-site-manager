@@ -108,7 +108,7 @@ export default function Dashboard({ projects, loaded, error, refresh, profile, o
         <Kpi tone="accent" label="Active projects" val={active.length} sub={projects.length + ' total'} onClick={onGoProjects} />
         <Kpi tone="green" label="Completed" val={done.length} sub={done.length ? 'Nice work' : 'None handed over yet'} onClick={onGoProjects} />
         <Kpi tone="amber" label="Tasks done" val={totals.done + ' / ' + totals.total} sub={(totals.total ? Math.round((totals.done / totals.total) * 100) : 0) + '% across all builds'} onClick={onGoProjects} />
-        <Kpi tone="red" label="Open requests" val={requests.length} sub={requests.length ? 'Site is waiting on you' : 'Site is all clear'} />
+        <Kpi tone="red" label="Open requests" val={requests.length} sub={requests.length ? 'Site is waiting on you' : 'Site is all clear'} onClick={() => document.getElementById('sec-requests')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} />
       </div>
 
       {/* Today on site — the morning plan */}
@@ -160,6 +160,7 @@ export default function Dashboard({ projects, loaded, error, refresh, profile, o
       )}
 
       {/* Requests from site */}
+      <div id="sec-requests" style={{ scrollMarginTop: 70 }} />
       <SectionHead icon="flag" tint="red" title="Requests from site" count={requests.length} tone="red" />
       {requests.length === 0 ? (
         <AllClear>Nothing open — supervisors have everything they need.</AllClear>

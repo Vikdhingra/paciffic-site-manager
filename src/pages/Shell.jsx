@@ -62,7 +62,7 @@ export default function Shell(props) {
           <img src="/logo.png" alt="" />
           <div>
             <div className="ws-name">Paciffic</div>
-            <div className="ws-sub">Site CRM</div>
+            <div className="ws-sub">Supervisors</div>
           </div>
         </div>
 
@@ -113,7 +113,7 @@ export default function Shell(props) {
       <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
         <div className="mobile-top only-m">
           <img src="/logo.png" alt="" style={{ height: 24 }} />
-          <div style={{ fontSize: 14, fontWeight: 600, flex: 1 }}>Paciffic Site CRM</div>
+          <div style={{ fontSize: 14, fontWeight: 600, flex: 1 }}>Paciffic Supervisors</div>
           <span className="sub" style={{ fontSize: 10.5 }}>{APP_VERSION}</span>
           <button className="btn btn-ghost btn-icon" onClick={signOut} aria-label="Sign out">
             <Icon name="logout" size={16} />

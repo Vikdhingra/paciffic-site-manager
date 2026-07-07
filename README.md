@@ -1,4 +1,4 @@
-# Paciffic Site CRM v1.0.0
+# Paciffic Supervisors v1.0.0
 
 Construction project CRM for Paciffic Homes — projects, stages, tasks,
 daily site diaries, photos, and site-to-office requests.

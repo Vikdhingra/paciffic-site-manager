@@ -44,7 +44,7 @@ export default function Auth() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 22 }}>
           <img src="/logo.png" alt="" style={{ height: 34 }} />
           <div>
-            <div style={{ fontSize: 15, fontWeight: 600, letterSpacing: '-0.01em' }}>Paciffic Site CRM</div>
+            <div style={{ fontSize: 15, fontWeight: 600, letterSpacing: '-0.01em' }}>Paciffic Supervisors</div>
             <div className="sub">Paciffic Homes</div>
           </div>
         </div>
