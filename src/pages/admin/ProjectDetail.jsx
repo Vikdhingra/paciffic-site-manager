@@ -3,10 +3,13 @@ import { uid, projectSupervisorIds } from '../../lib/constants'
 import { Card, Btn, Input, StageRail, projectPct, projectIsDone } from '../../components/ui'
 import Icon from '../../components/icons'
 import SupervisorPicker from '../../components/SupervisorPicker'
+import DiaryTab from '../project/DiaryTab'
+import PhotosTab from '../project/PhotosTab'
+import RequestsTab from '../project/RequestsTab'
 
-export default function ProjectDetail({ project, save, onBack, isAdmin }) {
+export default function ProjectDetail({ project, save, onBack, isAdmin, initialTab, profile, user }) {
   const [p, setP] = useState(project)
-  const [tab, setTab] = useState('overview')
+  const [tab, setTab] = useState(initialTab || 'overview')
 
   const update = (next) => {
     setP(next)
@@ -69,6 +72,9 @@ export default function ProjectDetail({ project, save, onBack, isAdmin }) {
 
   const tabs = [
     { id: 'overview', label: 'Overview' },
+    { id: 'diary', label: 'Diary' },
+    { id: 'requests', label: 'Requests' },
+    { id: 'photos', label: 'Photos' },
     { id: 'tasks', label: 'Tasks' },
     { id: 'notes', label: 'Notes' },
     ...(isAdmin ? [{ id: 'team', label: 'Team' }] : []),
@@ -147,6 +153,9 @@ export default function ProjectDetail({ project, save, onBack, isAdmin }) {
       {tab === 'overview' && (
         <Overview p={p} toggleTask={toggleTask} completeStage={completeStage} reopenStage={reopenStage} setActive={setActive} />
       )}
+      {tab === 'diary' && <DiaryTab p={p} update={update} profile={profile} user={user} />}
+      {tab === 'requests' && <RequestsTab p={p} isAdmin={isAdmin} profile={profile} user={user} />}
+      {tab === 'photos' && <PhotosTab p={p} isAdmin={isAdmin} />}
       {tab === 'tasks' && <Tasks p={p} addTask={addTask} toggleTask={toggleTask} deleteTask={deleteTask} />}
       {tab === 'notes' && <Notes p={p} update={update} />}
       {tab === 'team' && <Team p={p} update={update} />}

@@ -151,3 +151,136 @@ export async function sendPasswordReset(email) {
 export async function signOut() {
   await supabase.auth.signOut()
 }
+
+// ── DAILY SITE DIARY (sc_diary) ───────────────────────────────
+// One entry per project per day. `data` holds the diary body:
+// { weather, trades, deliveries, delays, safety, summary,
+//   plannedJobs: [{ taskId, stageId, title, done }] }
+
+const dayKey = (d = new Date()) => {
+  const x = new Date(d)
+  return x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0') + '-' + String(x.getDate()).padStart(2, '0')
+}
+export { dayKey }
+
+export async function fetchDiaryEntries(projectId, limit = 30) {
+  const { data, error } = await supabase
+    .from('sc_diary')
+    .select('*')
+    .eq('project_id', projectId)
+    .order('entry_date', { ascending: false })
+    .limit(limit)
+  if (error) throw error
+  return data || []
+}
+
+export async function fetchDiaryEntry(projectId, entryDate) {
+  const { data, error } = await supabase
+    .from('sc_diary')
+    .select('*')
+    .eq('project_id', projectId)
+    .eq('entry_date', entryDate)
+    .maybeSingle()
+  if (error) throw error
+  return data || null
+}
+
+// Which of these projects already have a diary entry for today?
+export async function fetchTodayDiaryStatus(projectIds) {
+  if (!projectIds.length) return {}
+  const { data, error } = await supabase
+    .from('sc_diary')
+    .select('project_id')
+    .eq('entry_date', dayKey())
+    .in('project_id', projectIds)
+  if (error) throw error
+  const map = {}
+  ;(data || []).forEach((r) => (map[r.project_id] = true))
+  return map
+}
+
+export async function saveDiaryEntry(entry) {
+  const { error } = await supabase.from('sc_diary').upsert(
+    {
+      id: entry.id,
+      project_id: entry.project_id,
+      entry_date: entry.entry_date,
+      supervisor_id: entry.supervisor_id || null,
+      supervisor_name: entry.supervisor_name || '',
+      data: entry.data,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: 'project_id,entry_date' }
+  )
+  if (error) throw error
+}
+
+// ── SITE REQUESTS — supervisor → admin support (sc_requests) ──
+// type: 'order' | 'provide' | 'question' | 'other'
+// status: 'open' | 'in_progress' | 'done'
+
+export async function fetchRequests(projectId) {
+  const { data, error } = await supabase
+    .from('sc_requests')
+    .select('*')
+    .eq('project_id', projectId)
+    .order('created_at', { ascending: false })
+  if (error) throw error
+  return data || []
+}
+
+export async function fetchOpenRequests() {
+  const { data, error } = await supabase
+    .from('sc_requests')
+    .select('*')
+    .neq('status', 'done')
+    .order('created_at', { ascending: false })
+  if (error) throw error
+  return data || []
+}
+
+export async function fetchOpenRequestCounts(projectIds) {
+  if (!projectIds.length) return {}
+  const { data, error } = await supabase
+    .from('sc_requests')
+    .select('project_id')
+    .neq('status', 'done')
+    .in('project_id', projectIds)
+  if (error) throw error
+  const map = {}
+  ;(data || []).forEach((r) => (map[r.project_id] = (map[r.project_id] || 0) + 1))
+  return map
+}
+
+export async function addRequest(req) {
+  const { data, error } = await supabase
+    .from('sc_requests')
+    .insert({
+      id: uid(),
+      project_id: req.project_id,
+      title: req.title,
+      details: req.details || '',
+      type: req.type || 'other',
+      priority: req.priority || 'medium',
+      needed_by: req.needed_by || null,
+      status: 'open',
+      created_by: req.created_by || null,
+      created_by_name: req.created_by_name || '',
+      created_at: new Date().toISOString(),
+    })
+    .select()
+    .single()
+  if (error) throw error
+  return data
+}
+
+export async function updateRequest(id, patch) {
+  const { data, error } = await supabase
+    .from('sc_requests')
+    .update({ ...patch, updated_at: new Date().toISOString() })
+    .eq('id', id)
+    .select()
+    .single()
+  if (error) throw error
+  return data
+}

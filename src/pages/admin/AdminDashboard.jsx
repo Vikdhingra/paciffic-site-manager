@@ -1,11 +1,30 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { computeStats, buildReminders, buildNotes } from '../../lib/derive'
 import { fmtDateShort, timeAgo } from '../../lib/constants'
+import { fetchOpenRequests, updateRequest } from '../../lib/db'
 import { Card, Spinner, StageRail, projectPct, projectIsDone, taskCounts, EmptyState, Eyebrow } from '../../components/ui'
 import Icon from '../../components/icons'
+import { RequestCard } from '../project/RequestsTab'
 
 export default function AdminDashboard({ projects, loaded, error, save, onOpenProject, onGoProjects, onNewProject }) {
   const [busyTask, setBusyTask] = useState(null)
+  const [requests, setRequests] = useState([])
+
+  useEffect(() => {
+    fetchOpenRequests().then(setRequests).catch(() => {})
+  }, [])
+
+  const patchRequest = async (id, changes) => {
+    try {
+      const updated = await updateRequest(id, changes)
+      setRequests((rs) => (updated.status === 'done' ? rs.filter((r) => r.id !== id) : rs.map((r) => (r.id === id ? updated : r))))
+    } catch (e) {
+      alert(e.message)
+    }
+  }
+
+  const projectById = {}
+  projects.forEach((p) => (projectById[p.id] = p))
 
   const stats = computeStats(projects)
   const reminders = buildReminders(projects).slice(0, 8)
@@ -100,6 +119,38 @@ export default function AdminDashboard({ projects, loaded, error, save, onOpenPr
           </button>
         ))}
       </div>
+
+      {/* Admin support — requests from site pop here first */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 12 }}>
+        <Icon name="flag" size={18} style={{ color: 'var(--red)' }} />
+        <div className="h-card">Admin support — from site</div>
+        {requests.length > 0 && <span className="chip chip-red">{requests.length}</span>}
+      </div>
+      {requests.length === 0 ? (
+        <Card style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'var(--ink-3)', fontSize: 13.5, marginBottom: 26, padding: '14px 18px' }}>
+          <Icon name="check" size={17} style={{ color: 'var(--green)' }} /> No open requests from supervisors.
+        </Card>
+      ) : (
+        <div className="grid-cards" style={{ marginBottom: 8 }}>
+          {requests.map((r) => (
+            <div key={r.id}>
+              <RequestCard
+                r={r}
+                projectName={projectById[r.project_id]?.name || 'Project'}
+                isAdmin
+                showProject
+                onPatch={patchRequest}
+              />
+              {projectById[r.project_id] && (
+                <button className="btn btn-ghost btn-sm" style={{ marginTop: -4, marginBottom: 8 }} onClick={() => onOpenProject(projectById[r.project_id])}>
+                  Open {projectById[r.project_id].name}
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+      <div style={{ height: 14 }} />
 
       {/* Needs attention — actionable */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 12 }}>
