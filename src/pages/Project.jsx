@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import {
-  completeStage, reopenStage, setActiveStage, addTask, setTaskDone, deleteTask, setAssignments, updateProject,
+  completeStage, reopenStage, setActiveStage, addTask, setTaskDone, setTaskStatus, deleteTask, setAssignments, updateProject,
 } from '../lib/api'
 import { projectPct, isComplete, activeStage, fmtShort } from '../lib/helpers'
 import { Btn, Card, Segments, Tick, Tag, PriorityTag, Field, Input, Modal } from '../components/ui'
@@ -225,14 +225,28 @@ function Overview({ p, act, busy }) {
 
 function TaskRow({ t, act }) {
   const done = t.status === 'done'
+  const started = t.status === 'in_progress'
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 0', borderBottom: '1px solid var(--line)' }}>
-      <Tick done={done} onClick={() => act(() => setTaskDone(t.id, !done))} />
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 0', borderBottom: '1px solid var(--line)', flexWrap: 'wrap' }}>
+      <Tick done={done} onClick={() => act(() => setTaskStatus(t.id, done ? 'todo' : 'done'))} label={done ? 'Reopen' : 'Mark done'} />
       <span style={{ flex: 1, minWidth: 0, fontSize: 13.5, color: done ? 'var(--ink-3)' : 'var(--ink)', textDecoration: done ? 'line-through' : 'none' }}>
         {t.title}
       </span>
       {t.due_date && !done && <Tag icon="clock">{fmtShort(t.due_date)}</Tag>}
       {t.priority !== 'medium' && <PriorityTag p={t.priority} />}
+      {!done && !started && (
+        <button className="btn btn-outline" style={{ padding: '4px 11px', fontSize: 12.5 }} onClick={() => act(() => setTaskStatus(t.id, 'in_progress'))}>
+          Start
+        </button>
+      )}
+      {started && (
+        <>
+          <Tag tone="amber">In progress</Tag>
+          <button className="btn btn-green" style={{ padding: '4px 11px', fontSize: 12.5 }} onClick={() => act(() => setTaskStatus(t.id, 'done'))}>
+            <Icon name="check" size={13} /> Done
+          </button>
+        </>
+      )}
       <button
         className="btn btn-ghost btn-icon"
         style={{ color: 'var(--ink-3)' }}

@@ -444,3 +444,12 @@ export async function deleteProjectFile(row) {
   const { error } = await supabase.from('pm_files').delete().eq('id', row.id)
   if (error) throw error
 }
+
+// ═══ TASK STATUS (todo → in_progress → done) ════════════════
+export async function setTaskStatus(taskId, status) {
+  const { error } = await supabase
+    .from('pm_tasks')
+    .update({ status, done_at: status === 'done' ? new Date().toISOString() : null })
+    .eq('id', taskId)
+  if (error) throw error
+}

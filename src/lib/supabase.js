@@ -15,4 +15,4 @@ export const supabase = createClient(
   { auth: { persistSession: true, autoRefreshToken: true } }
 )
 
-export const APP_VERSION = 'v1.6.1'
+export const APP_VERSION = 'v1.7.0'

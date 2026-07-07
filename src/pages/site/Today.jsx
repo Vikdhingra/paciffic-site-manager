@@ -119,7 +119,8 @@ export default function Today({ projects, loaded, error, onOpenProject }) {
                     <div className="overline" style={{ fontSize: 10.5, marginBottom: 4 }}>Jobs today · {jobs.length} open</div>
                     {jobs.slice(0, 3).map((t) => (
                       <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '2px 0', fontSize: 13, color: 'var(--ink-2)' }}>
-                        <Icon name="clock" size={12} style={{ color: 'var(--amber)' }} /> {t.title}
+                        <Icon name={t.status === 'in_progress' ? 'target' : 'clock'} size={12} style={{ color: t.status === 'in_progress' ? 'var(--accent)' : 'var(--amber)' }} />
+                        {t.title}{t.status === 'in_progress' ? ' · started' : ''}
                       </div>
                     ))}
                     {jobs.length > 3 && <div className="sub" style={{ paddingLeft: 19 }}>+{jobs.length - 3} more</div>}

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { fetchOpenRequests, updateRequest, setTaskDone, fetchAllProfiles, fetchNewPhotos, archivePhoto, fetchTodayDiaries } from '../../lib/api'
+import { fetchOpenRequests, updateRequest, setTaskDone, setTaskStatus, fetchAllProfiles, fetchNewPhotos, archivePhoto, fetchTodayDiaries } from '../../lib/api'
 import { projectPct, isComplete, taskCounts, activeStage, openTasksInActiveStage, fmtShort, typeLabel } from '../../lib/helpers'
 import { downloadRequestEvent } from '../../lib/calendar'
 import { Card, Tag, PriorityTag, Empty, Banner, Spinner, Segments, IconChip } from '../../components/ui'
@@ -230,8 +230,19 @@ export default function Dashboard({ projects, loaded, error, refresh, profile, o
                 <div className="sub">{item.p.name} · {item.s.name}</div>
               </div>
               {item.t.due_date && <Tag icon="clock">{fmtShort(item.t.due_date)}</Tag>}
+              {item.t.status === 'in_progress' && <Tag tone="amber">In progress</Tag>}
               <PriorityTag p={item.t.priority} />
-              <button className="btn btn-outline" disabled={busy === item.t.id} onClick={() => completeTask(item)}>
+              {item.t.status === 'todo' && (
+                <button className="btn btn-outline" disabled={busy === item.t.id} onClick={async () => {
+                  setBusy(item.t.id)
+                  await setTaskStatus(item.t.id, 'in_progress').catch((e) => alert(e.message))
+                  await refresh(item.p.id)
+                  setBusy(null)
+                }}>
+                  {busy === item.t.id ? '…' : 'Start'}
+                </button>
+              )}
+              <button className="btn btn-green" disabled={busy === item.t.id} onClick={() => completeTask(item)}>
                 <Icon name="check" size={14} /> {busy === item.t.id ? '…' : 'Done'}
               </button>
             </div>
