@@ -9,6 +9,7 @@ import SupervisorPicker from '../components/SupervisorPicker'
 import DiaryTab from './project/DiaryTab'
 import PhotosTab from './project/PhotosTab'
 import RequestsTab from './project/RequestsTab'
+import FilesTab from './project/FilesTab'
 
 export default function Project(props) {
   const { projects, projectId, initialTab, onBack, refresh, isAdmin } = props
@@ -41,6 +42,7 @@ export default function Project(props) {
     { id: 'diary', label: 'Diary' },
     { id: 'requests', label: 'Requests' },
     { id: 'photos', label: 'Photos' },
+    { id: 'files', label: 'Files' },
     ...(isAdmin ? [{ id: 'team', label: 'Team' }] : []),
   ]
 
@@ -96,6 +98,7 @@ export default function Project(props) {
       {tab === 'diary' && <DiaryTab p={p} refresh={refresh} {...props} />}
       {tab === 'requests' && <RequestsTab p={p} {...props} />}
       {tab === 'photos' && <PhotosTab p={p} {...props} />}
+      {tab === 'files' && <FilesTab p={p} {...props} />}
       {tab === 'team' && (
         <div style={{ maxWidth: 480 }}>
           <div className="h2" style={{ marginBottom: 4 }}>Assigned supervisors</div>

@@ -215,7 +215,7 @@ function NewProjectModal({ onClose, onCreate }) {
         </span>
         <span style={{ fontSize: 13, color: 'var(--ink)' }}>
           Prefill standard task checklists
-          <span className="sub" style={{ display: 'block', fontSize: 11.5 }}>~50 starter tasks across the 10 stages — edit or delete any of them later</span>
+          <span className="sub" style={{ display: 'block', fontSize: 11.5 }}>69 standard Paciffic tasks across the 10 stages — edit or delete any of them later</span>
         </span>
       </button>
       {err && <div style={{ color: 'var(--red)', fontSize: 13, marginBottom: 10 }}>{err}</div>}

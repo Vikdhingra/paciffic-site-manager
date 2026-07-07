@@ -378,3 +378,50 @@ export async function fetchTodayDiaries(projectIds) {
   ;(data || []).forEach((r) => (map[r.project_id] = r))
   return map
 }
+
+// ═══ PROJECT FILES (Supabase Storage: pm-files bucket) ══════
+export async function fetchFiles(projectId) {
+  const { data, error } = await supabase
+    .from('pm_files')
+    .select('*')
+    .eq('project_id', projectId)
+    .order('created_at', { ascending: false })
+  if (error) throw error
+  return data || []
+}
+
+export async function uploadProjectFile({ projectId, file, userId, userName }) {
+  const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
+  const path = projectId + '/' + Date.now() + '-' + safe
+  const { error: upErr } = await supabase.storage.from('pm-files').upload(path, file, {
+    cacheControl: '3600',
+    upsert: false,
+  })
+  if (upErr) throw upErr
+  const { data, error } = await supabase
+    .from('pm_files')
+    .insert({
+      project_id: projectId,
+      name: file.name,
+      size: file.size,
+      mime: file.type || '',
+      storage_path: path,
+      uploaded_by: userId || null,
+      uploaded_by_name: userName || '',
+    })
+    .select()
+    .single()
+  if (error) throw error
+  return data
+}
+
+export function fileUrl(row) {
+  const { data } = supabase.storage.from('pm-files').getPublicUrl(row.storage_path)
+  return data.publicUrl
+}
+
+export async function deleteProjectFile(row) {
+  await supabase.storage.from('pm-files').remove([row.storage_path])
+  const { error } = await supabase.from('pm_files').delete().eq('id', row.id)
+  if (error) throw error
+}

@@ -1,46 +1,44 @@
 export const ADMIN_ROLES = ['admin', 'super_admin', 'superadmin']
 export const isAdminRole = (r) => ADMIN_ROLES.includes(r)
 
-// Stage template with starter task checklists (Victorian residential build)
+// Stage template — Paciffic Homes standard build checklist
 export const STAGE_TEMPLATE = [
   { name: 'Site Preparation', tasks: [
-    'Site survey & set-out', 'Temporary fencing & site toilet', 'Services located & marked (DBYD)',
-    'Site cut / scrape', 'Crossover protection installed',
+    'Preparation', 'Fencing', 'Cage Bin + Toilet', 'Security Camera', 'Site Cut', 'Set Out',
   ]},
   { name: 'Foundation / Slab Works', tasks: [
-    'Piers / screw piles installed', 'Under-slab plumbing rough-in', 'Termite protection installed',
-    'Steel & mesh inspection passed', 'Slab poured & curing',
+    'Underground Electrical', 'Underground Plumbing', 'Electricity Connection', 'Termite Part A',
+    'Base', 'Steel Order', 'Concrete Booking', 'Steel and Slab (Concreters)', 'Base Inspection',
+    'Slab-Steel Inspection', 'Pumpy', 'CCTV Inspection', 'Slab Pour', 'Termite Part B', 'Backfill',
   ]},
   { name: 'Structural Frame', tasks: [
-    'Frame delivered to site', 'Wall frames stood & braced', 'Roof trusses installed',
-    'Frame inspection approved', 'Windows delivered',
+    'Timber List', 'Truss Layout', 'Window Opening', 'Truss Booking', 'Timber Delivery',
+    'Framing', 'Windows Delivery', 'Truss Delivery', 'Frame Inspection',
   ]},
   { name: 'Roofing & Envelope', tasks: [
-    'Sarking & roof battens', 'Roof cover installed', 'Fascia & gutter installed',
-    'Building wrap complete', 'Brickwork / cladding started',
+    'Colourbond Roofing', 'Wrap', 'Bricks Delivery', 'Sand/Cement', 'Lintel',
+    'Brick Laying', 'Hebel Delivery', 'Lockup List', 'Internal Lockup',
   ]},
   { name: 'Lockup & Rough-Ins', tasks: [
-    'Brickwork / cladding complete', 'External doors & windows secured', 'Electrical rough-in',
-    'Plumbing rough-in', 'Heating & cooling ducts run',
+    'Plumbing Rough-in', 'Electrical Rough-in', 'Heating/Cooling Rough-in',
+    'Downpipes', 'Hookup/Rollover', 'Insulation',
   ]},
   { name: 'Internal Fixing', tasks: [
-    'Insulation installed & inspected', 'Plaster hung & set', 'Skirting & architraves fitted',
-    'Internal doors hung', 'Cabinetry installed',
+    'Plaster', 'Brick Wash', 'Garage Door', 'Waterproofing', 'Tiles Delivery',
+    'Tiler', 'Cabinetry', 'Shelving and Shower Screens',
   ]},
   { name: 'Interior Finishing', tasks: [
-    'Waterproofing & tiling complete', 'Painting complete', 'Electrical fit-off',
-    'Plumbing fit-off', 'Appliances installed',
+    'Electrical Fit-off', 'Plumber Fit-off', 'Paint', 'Caulking',
+    'Door Seals and Locks', 'Flooring', 'Blinds', 'Appliances',
   ]},
   { name: 'Exterior & Landscaping', tasks: [
-    'Render / external paint', 'Driveway & paths poured', 'Fencing complete',
-    'Landscaping done', 'Site clean & rubbish removed',
+    'Driveway', 'Landscaping', 'Outdoor Lockup/Fixing List', 'Outdoor Lockup/Fixing Work',
   ]},
   { name: 'Inspection & Handover', tasks: [
-    'Practical completion inspection', 'Defects rectified', 'Occupancy permit received',
-    'Final builders clean', 'Handover pack prepared',
+    'Final Inspection', 'Compliance checks before handover',
   ]},
   { name: 'Completion', tasks: [
-    'Keys handed over', 'Warranty documents issued', 'Maintenance period logged', 'Final invoice issued',
+    'Final Cleaning', 'Practical Completion / Handover',
   ]},
 ]
 export const DEFAULT_STAGES = STAGE_TEMPLATE.map((s) => s.name)
