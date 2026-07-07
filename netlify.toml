@@ -6,7 +6,9 @@
   NODE_VERSION = "20"
   # These are PUBLIC values (safe to expose in frontend builds).
   # Tell Netlify's secret scanner not to flag them appearing in the bundle.
-  SECRETS_SCAN_OMIT_KEYS = "VITE_SUPABASE_URL,VITE_SUPABASE_ANON_KEY"
+  # SUPABASE_URL is the same public URL (used by the serverless function) and
+  # appears in README.md and the index.html preconnect tag.
+  SECRETS_SCAN_OMIT_KEYS = "VITE_SUPABASE_URL,VITE_SUPABASE_ANON_KEY,SUPABASE_URL"
 
 [functions]
   node_bundler = "esbuild"
