@@ -11,8 +11,10 @@ import Today from './site/Today'
 import Project from './Project'
 
 export default function Shell(props) {
-  const { profile, isAdmin, addLocal } = props
-  const [nav, setNav] = useState(isAdmin ? 'dashboard' : 'today')
+  const { profile, isAdmin: realAdmin, addLocal } = props
+  const [viewAsSup, setViewAsSup] = useState(false)
+  const isAdmin = realAdmin && !viewAsSup
+  const [nav, setNav] = useState(realAdmin ? 'dashboard' : 'today')
   const [open, setOpen] = useState(null) // { id, tab }
   const [creating, setCreating] = useState(false)
   const [openReqCount, setOpenReqCount] = useState(0)
@@ -32,17 +34,24 @@ export default function Shell(props) {
 
   const go = (id) => { setNav(id); setOpen(null) }
   const openProject = (id, tab) => setOpen({ id, tab: tab || 'overview' })
+  const toggleView = () => {
+    const next = !viewAsSup
+    setViewAsSup(next)
+    setOpen(null)
+    setNav(next ? 'today' : 'dashboard')
+  }
+  const pageProps = { ...props, isAdmin }
 
   const page = open ? (
-    <Project {...props} projectId={open.id} initialTab={open.tab} onBack={() => setOpen(null)} />
+    <Project {...pageProps} projectId={open.id} initialTab={open.tab} onBack={() => setOpen(null)} />
   ) : nav === 'dashboard' ? (
-    <Dashboard {...props} onOpenProject={openProject} onGoProjects={() => go('projects')} onNew={() => setCreating(true)} />
+    <Dashboard {...pageProps} onOpenProject={openProject} onGoProjects={() => go('projects')} onNew={() => setCreating(true)} />
   ) : nav === 'projects' ? (
-    <Projects {...props} onOpenProject={openProject} onNew={() => setCreating(true)} />
+    <Projects {...pageProps} onOpenProject={openProject} onNew={() => setCreating(true)} />
   ) : nav === 'users' ? (
-    <Users {...props} />
+    <Users {...pageProps} />
   ) : (
-    <Today {...props} onOpenProject={openProject} />
+    <Today {...pageProps} onOpenProject={openProject} />
   )
 
   return (
@@ -70,6 +79,18 @@ export default function Shell(props) {
             {n.id === 'dashboard' && openReqCount > 0 && <span className="nav-count">{openReqCount}</span>}
           </button>
         ))}
+
+        {realAdmin && (
+          <button
+            className="nav-item"
+            style={viewAsSup ? { background: 'var(--amber-soft)', color: 'var(--amber)' } : {}}
+            onClick={toggleView}
+            title="Preview exactly what a supervisor sees"
+          >
+            <Icon name="swap" size={16} />
+            {viewAsSup ? 'Back to admin view' : 'View as supervisor'}
+          </button>
+        )}
 
         <div className="side-foot">
           <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '4px 8px 8px' }}>
@@ -100,7 +121,14 @@ export default function Shell(props) {
         </div>
 
         <main className="main">
-          <div className="page">{page}</div>
+          <div className="page">
+            {viewAsSup && (
+              <div style={{ background: 'var(--amber-soft)', border: '1px solid #ecdcb6', color: 'var(--amber)', borderRadius: 'var(--r)', padding: '8px 13px', fontSize: 12.5, marginBottom: 14 }}>
+                Previewing the supervisor view. You can see every project — a real supervisor only sees the ones assigned to them.
+              </div>
+            )}
+            {page}
+          </div>
         </main>
       </div>
 
@@ -116,6 +144,12 @@ export default function Shell(props) {
           <button className="mnav" onClick={() => setCreating(true)}>
             <Icon name="plus" size={20} />
             New
+          </button>
+        )}
+        {realAdmin && (
+          <button className="mnav" style={viewAsSup ? { color: 'var(--amber)' } : {}} onClick={toggleView}>
+            <Icon name="swap" size={20} />
+            {viewAsSup ? 'Admin' : 'As site'}
           </button>
         )}
       </nav>
@@ -148,6 +182,7 @@ function NewProjectModal({ onClose, onCreate }) {
   const [address, setAddress] = useState('')
   const [client, setClient] = useState('')
   const [supervisorIds, setSupervisorIds] = useState([])
+  const [seedTasks, setSeedTasks] = useState(true)
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
 
@@ -156,7 +191,7 @@ function NewProjectModal({ onClose, onCreate }) {
     setBusy(true)
     setErr('')
     try {
-      await onCreate({ name: name.trim(), address: address.trim(), client: client.trim(), supervisorIds })
+      await onCreate({ name: name.trim(), address: address.trim(), client: client.trim(), supervisorIds, seedTasks })
     } catch (e) {
       setErr(e.message || 'Could not create the project')
       setBusy(false)
@@ -171,6 +206,18 @@ function NewProjectModal({ onClose, onCreate }) {
       <Field label="Assign supervisors (optional)">
         <SupervisorPicker value={supervisorIds} onChange={setSupervisorIds} />
       </Field>
+      <button
+        onClick={() => setSeedTasks(!seedTasks)}
+        style={{ display: 'flex', alignItems: 'center', gap: 9, width: '100%', textAlign: 'left', background: seedTasks ? 'var(--accent-soft)' : 'var(--surface)', border: '1px solid ' + (seedTasks ? 'var(--accent)' : 'var(--line-2)'), borderRadius: 'var(--r)', padding: '9px 11px', cursor: 'pointer', marginBottom: 13 }}
+      >
+        <span style={{ width: 17, height: 17, borderRadius: 5, flexShrink: 0, border: '1.5px solid ' + (seedTasks ? 'var(--accent)' : 'var(--line-2)'), background: seedTasks ? 'var(--accent)' : '#fff', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {seedTasks && <Icon name="check" size={11} stroke={3} />}
+        </span>
+        <span style={{ fontSize: 13, color: 'var(--ink)' }}>
+          Prefill standard task checklists
+          <span className="sub" style={{ display: 'block', fontSize: 11.5 }}>~50 starter tasks across the 10 stages — edit or delete any of them later</span>
+        </span>
+      </button>
       {err && <div style={{ color: 'var(--red)', fontSize: 13, marginBottom: 10 }}>{err}</div>}
       <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
         <Btn onClick={submit} disabled={busy || !name.trim()} size="lg" style={{ flex: 1 }}>

@@ -1,5 +1,5 @@
 import { supabase } from './supabase'
-import { DEFAULT_STAGES, dayKey } from './helpers'
+import { STAGE_TEMPLATE, dayKey } from './helpers'
 
 // ═══ AUTH ══════════════════════════════════════════════════
 export async function signIn(email, password) {
@@ -59,7 +59,7 @@ export async function fetchProject(id) {
   return shape(data)
 }
 
-export async function createProject({ name, address, client, supervisorIds }) {
+export async function createProject({ name, address, client, supervisorIds, seedTasks = true }) {
   const { data: proj, error } = await supabase
     .from('pm_projects')
     .insert({ name, address: address || '', client: client || '' })
@@ -67,14 +67,27 @@ export async function createProject({ name, address, client, supervisorIds }) {
     .single()
   if (error) throw error
 
-  const stageRows = DEFAULT_STAGES.map((nm, i) => ({
+  const stageRows = STAGE_TEMPLATE.map((st, i) => ({
     project_id: proj.id,
-    name: nm,
+    name: st.name,
     sort_order: i + 1,
     status: i === 0 ? 'active' : 'pending',
   }))
-  const { error: e2 } = await supabase.from('pm_stages').insert(stageRows)
+  const { data: stages, error: e2 } = await supabase.from('pm_stages').insert(stageRows).select()
   if (e2) throw e2
+
+  if (seedTasks) {
+    const taskRows = []
+    STAGE_TEMPLATE.forEach((st) => {
+      const stage = (stages || []).find((x) => x.name === st.name)
+      if (!stage) return
+      st.tasks.forEach((title) => taskRows.push({ project_id: proj.id, stage_id: stage.id, title }))
+    })
+    if (taskRows.length) {
+      const { error: e4 } = await supabase.from('pm_tasks').insert(taskRows)
+      if (e4) throw e4
+    }
+  }
 
   if (supervisorIds?.length) {
     const { error: e3 } = await supabase
